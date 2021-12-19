@@ -17,3 +17,6 @@ Setup/Debug/
 *.idb
 *.recipe
 *.ilk
+Anamnesis/Anamnesis.runtimeconfig.json
+Anamnesis/Properties/Settings.Designer.cs
+Anamnesis/Properties/Settings.settings
