@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
@@ -8,6 +8,7 @@
 		<AppendTargetFramework>False</AppendTargetFramework>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<RootNamespace>Anamnesis</RootNamespace>
+		<RollForward>Major</RollForward>
 		<ApplicationIcon>Anamnesis.ico</ApplicationIcon>
 		<OutputPath>.\bin\</OutputPath>
 		<DocumentationFile>.\obj\Anamnesis.xml</DocumentationFile>

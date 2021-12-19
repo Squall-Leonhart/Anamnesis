@@ -102,11 +102,6 @@ namespace Anamnesis.Services
 			OperatingSystem os = Environment.OSVersion;
 			if (os.Platform != PlatformID.Win32NT)
 				throw new Exception("Only Windows NT or later is supported");
-
-			if (os.Version.Major < 10)
-			{
-				throw new Exception("Only Windows 10 or newer is supported");
-			}
 		}
 	}
 }
