@@ -233,7 +233,8 @@
 																			<MenuItem Click="OnUnpinActorClicked"
 																					  Header="Unpin" />
 
-																			<MenuItem Click="OnTargetActorClicked"
+																			<MenuItem Visibility="{Binding IsValid, Converter={StaticResource B2V}}" 
+																					  Click="OnTargetActorClicked"
 																					  Header="Target" />
 																		</ContextMenu>
 																	</ToggleButton.ContextMenu>
@@ -384,6 +385,16 @@
 						</TabItem.Header>
 
 						<posePages:PosePage DataContext="{Binding TargetService.SelectedActor}" />
+					</TabItem>
+					<TabItem IsEnabled="{Binding TargetService.SelectedActor, Converter={StaticResource NotNullToBoolConverter}}">
+						<TabItem.Header>
+							<fa:IconImage
+								Foreground="{DynamicResource MaterialDesignBodyLight}"
+								Icon="Bicycle"
+								ToolTip="Animate" />
+						</TabItem.Header>
+
+						<views:ActorAnimationView />
 					</TabItem>
 				</TabControl>
 			</Grid>
