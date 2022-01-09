@@ -54,6 +54,18 @@
 							VerticalAlignment="Top"
 							Orientation="Horizontal">
 
+					<Button Click="OnRaceGearClicked"
+							Style="{StaticResource TransparentIconButton}"
+							Visibility="{Binding Actor.IsPlayer, Converter={StaticResource B2V}}">
+
+						<Button.ToolTip>
+							<XivToolsWpf:TextBlock Key="Character_Equipment_RaceGear" />
+						</Button.ToolTip>
+
+						<fa:IconBlock Foreground="{DynamicResource MaterialDesignBodyLight}"
+									  Icon="UserAstronaut" />
+					</Button>
+
 					<Button Click="OnNpcSmallclothesClicked"
 							Style="{StaticResource TransparentIconButton}"
 							Visibility="{Binding Actor.IsPlayer, Converter={StaticResource B2V}}">
@@ -269,14 +281,12 @@
 
 				</Menu>
 
-				<Menu Style="{StaticResource AnaMenu}" Margin="0,3, 3, 4" HorizontalAlignment="Right">
-					<MenuItem Header="Common_SaveFile"
-							  Icon="Save"
-							  Width="238"
-							  Style="{StaticResource ButtonMenuItem}"
-							  Click="OnSaveClicked" />
-				</Menu>
-			</StackPanel>
+                <MenuItem Header="Common_SaveFile"
+                          Icon="Save"
+                          Margin="2, 3, 3, 4"
+                          Style="{StaticResource ButtonMenuItem}"
+                          Click="OnSaveClicked" />
+            </StackPanel>
 
 			
 

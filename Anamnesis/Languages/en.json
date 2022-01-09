@@ -12,7 +12,7 @@
 	"Common_LinkVector": "Link X, Y, and Z axes together",
 	"Common_Confirm": "Confirm",
 
-	"ProcessSelector_AllWarning": "Selecting a process other than the DirectX 11 Final Fantasy XIV process can cause the selected process and Anmnesis to crash",
+	"ProcessSelector_AllWarning": "Selecting a process other than the DirectX 11 Final Fantasy XIV process can cause the selected process and Anamnesis to crash",
 	"ProcessSelector_NotFound": "Final Fantasy XIV process (ffxiv_dx11) not found.",
 	"ProcessSelector_NotFound2": "Please ensure the game is running, and is in DirectX 11 mode.",
 
@@ -69,7 +69,7 @@
 	"EquipmentSelector_ModdedTip": "Items that have been modified",
 	"EquipmentSelector_Favorites": "Favourites",
 	"EquipmentSelector_FavoritesTip": "Items marked as a favourite",
-	"EquipmentSelector_FavoriteToggleTip": "Mark this item a a favourite",
+	"EquipmentSelector_FavoriteToggleTip": "Mark this item as a favourite",
 	"EquipmentSelector_Owned": "Owned",
 	"EquipmentSelector_OwnedTip": "Premium or Limited Items marked as owned",
 	"EquipmentSelector_OwnedToggleTip": "Mark this premium or limited item as owned",
@@ -141,6 +141,7 @@
 	"Character_Equipment_Weapons": "Weapons",
 	"Character_Equipment_Clear": "Remove all Equipment",
 	"Character_Equipment_NpcSmallclothes": "Equip NPC smallclothes",
+	"Character_Equipment_RaceGear": "Equip Race Specific Equipment",
 	"Character_Equipment_MainHand": "Main Hand",
 	"Character_Equipment_OffHand": "Off Hand",
 	"Character_Equipment_Head": "Head",
@@ -256,6 +257,7 @@
 	"Pose_Matrix_LegsCategory": "Legs",
 	"Pose_Matrix_ClothesCategory": "Clothes",
 	"Pose_Matrix_EquipmentCategory": "Equipment",
+	"Pose_Matrix_WeaponCategory": "Weapons",
 	"Pose_Matrix_OtherCategory": "Other",
 
 	"Pose_CharacterRoot": "Character",
@@ -315,6 +317,8 @@
 	"Pose_ClothesSides": "Sides",
 	"Pose_EqHelm": "Helm",
 	"Pose_EqTop": "Top",
+	"Pose_WeaponMainHand": "Main Hand",
+	"Pose_WeaponOffHand": "Off Hand",
 	"Pose_OtherHead": "Head",
 	"Pose_OtherAbdomen": "Abdomen",
 	"Pose_OtherThrow": "Throw",
@@ -477,6 +481,9 @@
 	"Animation_DrawWeapon": "Draw Weapon",
 	"Animation_Apply": "Play Animation",
 	"Animation_SlowMo": "Slow Motion",
+	"Animation_TimeControl": "Time Control",
+	"Animation_RepeatAfterPrefix": "Repeat after",
+	"Animation_RepeatAfterSuffix": "second(s)",
 	"Animation_Reset": "Reset Animation",
 
 	"Settings_Header": "Settings",

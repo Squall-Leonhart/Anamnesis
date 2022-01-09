@@ -6,7 +6,7 @@ namespace Anamnesis.Character.Views
 	using System.Windows;
 	using System.Windows.Controls;
 	using Anamnesis.GameData.Excel;
-	using Anamnesis.GameData.Sheets;
+	using Anamnesis.GameData.Interfaces;
 	using Anamnesis.Memory;
 	using Anamnesis.Services;
 	using Anamnesis.Styles.Drawers;
@@ -29,7 +29,7 @@ namespace Anamnesis.Character.Views
 		public AnimationService AnimationService => AnimationService.Instance;
 		public GposeService GposeService => GposeService.Instance;
 
-		public int RepeatTimer { get; set; } = 0;
+		public float RepeatTimer { get; set; } = 0;
 
 		public uint AnimationId
 		{
@@ -53,7 +53,7 @@ namespace Anamnesis.Character.Views
 			set
 			{
 				this.slowMotion = value;
-				this.OnPlayClicked(null, null);
+				////this.OnPlayClicked(null, null);
 			}
 		}
 
@@ -67,16 +67,39 @@ namespace Anamnesis.Character.Views
 			{
 				this.Actor = null;
 			}
+
+			this.RefreshUI();
+		}
+
+		private void RefreshUI()
+		{
+			AnimationService.ActorAnimation? animation = null;
+
+			if(this.Actor != null)
+				animation = this.AnimationService.GetAnimation(this.Actor);
+
+			if(animation != null)
+			{
+				this.AnimationId = animation.AnimationId;
+				this.RepeatTimer = animation.RepeatAfter;
+				this.SlowMotion = animation.AnimationMode == ActorMemory.AnimationModes.SlowMotion;
+			}
+			else
+			{
+				this.AnimationId = 8047;
+				this.RepeatTimer = 0f;
+				this.SlowMotion = false;
+			}
 		}
 
 		private void OnSearchClicked(object sender, RoutedEventArgs e)
 		{
-			SelectorDrawer.Show<AnimationSelector, ActionTimeline>(null, (action) =>
+			SelectorDrawer.Show<AnimationSelector, IAnimation>(null, (animation) =>
 			{
-				if (action == null)
+				if (animation == null)
 					return;
 
-				this.AnimationId = action.RowId;
+				this.AnimationId = animation.ActionTimelineRowId;
 				this.OnPlayClicked(null, null);
 			});
 		}

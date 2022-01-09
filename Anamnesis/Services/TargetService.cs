@@ -153,14 +153,14 @@ namespace Anamnesis
 				}
 				catch (Exception ex)
 				{
-					Log.Warning(ex, $"Faield to create Actor Basic View Model for address: {ptr}");
+					Log.Warning(ex, $"Failed to create Actor Basic View Model for address: {ptr}");
 				}
 			}
 
 			return results;
 		}
 
-		public static bool IsActorInActorTable(IntPtr pointer)
+		public static int GetActorTableIndex(IntPtr pointer)
 		{
 			int count = 0;
 			IntPtr startAddress;
@@ -183,11 +183,16 @@ namespace Anamnesis
 
 				if (ptr == pointer)
 				{
-					return true;
+					return i;
 				}
 			}
 
-			return false;
+			return -1;
+		}
+
+		public static bool IsActorInActorTable(IntPtr pointer)
+		{
+			return GetActorTableIndex(pointer) != -1;
 		}
 
 		public static void SetPlayerTarget(PinnedActor actor)
