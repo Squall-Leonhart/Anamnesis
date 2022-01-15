@@ -23,26 +23,23 @@ namespace Anamnesis.Memory
 			Unload = 2,
 		}
 
-		public enum AnimationModes : int
-		{
-			Normal = 0x3F,
-			SlowMotion = 0x3E,
-		}
-
 		[Bind(0x008D)] public byte SubKind { get; set; }
 		[Bind(0x00F0, BindFlags.Pointer)] public ActorModelMemory? ModelObject { get; set; }
 		[Bind(0x0104)] public RenderModes RenderMode { get; set; }
 		[Bind(0x01B4, BindFlags.ActorRefresh)] public int ModelType { get; set; }
 		[Bind(0x01E2)] public byte ClassJob { get; set; }
 		[Bind(0x07C4)] public bool IsAnimating { get; set; }
+		[Bind(0x0C30, BindFlags.Pointer)] public ActorMemory? Mount { get; set; }
+		[Bind(0x0C38)] public bool IsMounted { get; set; }
 		[Bind(0x0C78)] public WeaponMemory? MainHand { get; set; }
 		[Bind(0x0CE0)] public WeaponMemory? OffHand { get; set; }
 		[Bind(0x0DB0)] public ActorEquipmentMemory? Equipment { get; set; }
 		[Bind(0x0DD8)] public ActorCustomizeMemory? Customize { get; set; }
 		[Bind(0x0F30)] public uint TargetAnimation { get; set; }
-		[Bind(0x0F4C)] public uint NextAnimation { get; set; }
-		[Bind(0x0FA7)] public AnimationModes AnimationMode { get; set; }
+		[Bind(0x0FA4)] public float AnimationSpeed { get; set; }
+		[Bind(0x1102)] public ushort AnimationOverride { get; set; }
 		[Bind(0x18B8)] public float Transparency { get; set; }
+		[Bind(0x19C0)] public byte AnimationMode { get; set; }
 
 		public bool AutomaticRefreshEnabled { get; set; } = true;
 		public bool IsRefreshing { get; set; } = false;
