@@ -129,12 +129,13 @@ namespace Anamnesis.Styles.Drawers
 			}
 		}
 
-		public static void Show<TView, TValue>(TValue? current, Action<TValue> changed)
+		public static TView Show<TView, TValue>(TValue? current, Action<TValue> changed)
 			where TView : ISelectorView
 			where TValue : class
 		{
-			ISelectorView view = Activator.CreateInstance<TView>();
+			TView view = Activator.CreateInstance<TView>();
 			Show(view, current, changed);
+			return view;
 		}
 
 		public static async Task<TValue?> ShowAsync<TView, TValue>(TValue? current)

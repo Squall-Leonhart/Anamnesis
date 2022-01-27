@@ -250,7 +250,7 @@ namespace Anamnesis.Files
 
 			actor.AutomaticRefreshEnabled = false;
 
-			if (ActorRefreshService.GetCanRefresh())
+			if (actor.CanRefresh)
 			{
 				actor.EnableReading = false;
 
@@ -260,14 +260,6 @@ namespace Anamnesis.Files
 				if (TerritoryService.Exists && territory != null && territory.IsHouse)
 				{
 					if (actor.ObjectKind == ActorTypes.EventNpc)
-					{
-						actor.ObjectKind = ActorTypes.Player;
-						await actor.RefreshAsync();
-					}
-				}
-				else
-				{
-					if (actor.ObjectKind != ActorTypes.Player && actor.ObjectKind != ActorTypes.BattleNpc && actor.ObjectKind != ActorTypes.EventNpc)
 					{
 						actor.ObjectKind = ActorTypes.Player;
 						await actor.RefreshAsync();

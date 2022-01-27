@@ -44,7 +44,15 @@
 	"Target_Players": "Players",
 	"Target_Companions": "Companions",
 	"Target_Npc": "NPCs",
+	"Target_Mounts": "Mounts",
+	"Target_Ornaments": "Ornaments",
 	"Target_Other": "Others",
+	"Target_Gpose": "(GPose)",
+
+	"SubActor_Title": "Sub Actors",
+	"SubActor_Mount": "Mount",
+	"SubActor_Companion": "Minion",
+	"SubActor_Ornament": "Fashion Accessory",
 
 	"EquipmentSelector_Classes": "Classes / Jobs",
 	"EquipmentSelector_ShowLocked": "Show race/gender-locked items",
@@ -481,7 +489,9 @@
 
 	"Animation_Search": "Search for an animation",
 	"Animation_DrawWeapon": "Draw Weapon",
+	"Animation_IdleCharacter": "Idle Character",
 	"Animation_Play": "Play Animation",
+	"Animation_Pause": "Pause Animation",
 	"Animation_Queue": "Queue Animation",
 	"Animation_Speed": "Speed",
 	"Animation_AnimationId": "Animation Id",

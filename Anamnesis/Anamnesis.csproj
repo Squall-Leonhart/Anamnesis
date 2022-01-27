@@ -67,10 +67,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="Data\ModelList.json" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <EmbeddedResource Include="Posing\LegacyBoneNameConverter.cs" />
 	</ItemGroup>
 
@@ -87,7 +83,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Lib\AnamnesisConnect\Shared\AnamnesisConnect.Shared.csproj" />
 	  <ProjectReference Include="..\Lib\XivToolsWpf\XivToolsWpf.csproj" />
 	</ItemGroup>
 

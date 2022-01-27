@@ -10,12 +10,13 @@ namespace Anamnesis.Character.Pages
 	using System.Windows.Controls;
 	using Anamnesis.Character.Utilities;
 	using Anamnesis.Character.Views;
-	using Anamnesis.Connect;
 	using Anamnesis.Files;
 	using Anamnesis.GameData;
+	using Anamnesis.GameData.Excel;
 	using Anamnesis.GameData.Sheets;
 	using Anamnesis.Memory;
 	using Anamnesis.Services;
+	using Anamnesis.Styles;
 	using Anamnesis.Styles.Drawers;
 	using PropertyChanged;
 	using Serilog;
@@ -36,9 +37,6 @@ namespace Anamnesis.Character.Pages
 			this.ContentArea.DataContext = this;
 		}
 
-		public GposeService GPoseService => GposeService.Instance;
-		public AnamnesisConnectService AnamnesisConnectService => AnamnesisConnectService.Instance;
-		public ActorRefreshService ActorRefreshService => ActorRefreshService.Instance;
 		public ActorMemory? Actor { get; private set; }
 
 		private void OnLoaded(object sender, RoutedEventArgs e)
@@ -204,17 +202,6 @@ namespace Anamnesis.Character.Pages
 			});
 		}
 
-		private void OnLoadObjectClicked(object sender, RoutedEventArgs e)
-		{
-			SelectorDrawer.Show<ModelListSelector, ModelListEntry>(null, (npc) =>
-			{
-				if (npc == null)
-					return;
-
-				Task.Run(() => this.ApplyNpc(npc, CharacterFile.SaveModes.Appearance));
-			});
-		}
-
 		private async Task ApplyNpc(INpcBase? npc, CharacterFile.SaveModes mode = CharacterFile.SaveModes.All)
 		{
 			if (this.Actor == null || npc == null)
@@ -302,7 +289,7 @@ namespace Anamnesis.Character.Pages
 
 			Application.Current.Dispatcher.InvokeAsync(() =>
 			{
-				bool hasValidSelection = actor != null && (actor.ObjectKind == ActorTypes.Player || actor.ObjectKind == ActorTypes.BattleNpc || actor.ObjectKind == ActorTypes.EventNpc);
+				bool hasValidSelection = actor != null && actor.ObjectKind.IsSupportedType();
 				this.IsEnabled = hasValidSelection;
 			});
 		}

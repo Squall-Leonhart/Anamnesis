@@ -17,6 +17,7 @@
 	<Grid x:Name="ContentArea">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto"/>
 			<RowDefinition />
 		</Grid.RowDefinitions>
@@ -34,12 +35,24 @@
 			<CheckBox Margin="6,0" IsChecked="{Binding IncludeNPCs}">
 				<XivToolsWpf:TextBlock Key="Target_Npc" />
 			</CheckBox>
+		</StackPanel>
+
+		<StackPanel
+			Grid.Row="1"
+			Margin="4,6,4,0"
+			Orientation="Horizontal">
+			<CheckBox Margin="6,0" IsChecked="{Binding IncludeMounts}">
+				<XivToolsWpf:TextBlock Key="Target_Mounts" />
+			</CheckBox>
+			<CheckBox Margin="6,0" IsChecked="{Binding IncludeOrnaments}">
+				<XivToolsWpf:TextBlock Key="Target_Ornaments" />
+			</CheckBox>
 			<CheckBox Margin="6,0" IsChecked="{Binding IncludeOther}">
 				<XivToolsWpf:TextBlock Key="Target_Other" />
 			</CheckBox>
 		</StackPanel>
 
-		<Grid Grid.Row="1">
+		<Grid Grid.Row="2">
 
 			<Button Click="OnAddPlayerTargetActorClicked"
 					IsEnabled="{Binding TargetService.IsPlayerTargetPinnable}"
@@ -57,7 +70,7 @@
 
 		<cm3Drawers:SelectorDrawer
 			x:Name="Selector"
-			Grid.Row="2"
+			Grid.Row="3"
 			Close="OnClose"
 			Filter="OnFilter"
 			Sort="OnSort"
@@ -73,26 +86,37 @@
 						</Grid.ColumnDefinitions>
 
 						<fa:IconBlock Grid.Column="0" Icon="{Binding Icon}" />
-						<TextBlock
-							Grid.Column="1"
-							Margin="6,0,0,0"
-							FontWeight="DemiBold"
-							Foreground="{DynamicResource MaterialDesignBody}"
-							Text="{Binding DisplayName}" />
-						<TextBlock
+
+                        <StackPanel Orientation="Horizontal" Grid.Column="1">
+							<TextBlock
+								Margin="6,0,0,0"
+								FontWeight="DemiBold"
+								Foreground="{DynamicResource MaterialDesignBody}"
+								Text="{Binding DisplayName}" />
+                            
+							<XivToolsWpf:TextBlock
+								Margin="6,0,0,0"
+								FontWeight="Light"
+								Foreground="{DynamicResource MaterialDesignBody}"
+								Visibility="{Binding IsGPoseActor, Converter={StaticResource B2V}}"
+								Key="Target_Gpose" />
+                        </StackPanel>
+
+                        <TextBlock
 							Grid.Column="2"
 							Margin="6,0,0,0"
 							HorizontalAlignment="Right"
 							FontWeight="Light"
 							Foreground="{DynamicResource MaterialDesignBody}"
 							Text="{Binding DistanceFromPlayer, StringFormat={}{0:#0} ym}" />
-						<Grid.ToolTip>
+
+                        <Grid.ToolTip>
 							<TextBlock>
 								<TextBlock.Text>
 									<MultiBinding StringFormat="{}{0} ({1})">
 										<Binding Path="DisplayName" />
-										<Binding Path="ObjectKind" />
-									</MultiBinding>
+                                        <Binding Path="ObjectKind" />
+                                    </MultiBinding>
 								</TextBlock.Text>
 							</TextBlock>
 						</Grid.ToolTip>

@@ -30,7 +30,7 @@ namespace Anamnesis
 		public static event PinnedEvent? ActorUnPinned;
 
 		public ActorBasicMemory PlayerTarget { get; private set; } = new();
-		public bool IsPlayerTargetPinnable => this.PlayerTarget.Address != IntPtr.Zero && ActorType.IsActorTypeSupported(this.PlayerTarget.ObjectKind);
+		public bool IsPlayerTargetPinnable => this.PlayerTarget.Address != IntPtr.Zero && this.PlayerTarget.ObjectKind.IsSupportedType();
 		public ActorMemory? SelectedActor { get; private set; }
 		public ObservableCollection<PinnedActor> PinnedActors { get; set; } = new ObservableCollection<PinnedActor>();
 
@@ -39,7 +39,7 @@ namespace Anamnesis
 			if (basicActor.Address == IntPtr.Zero)
 				return;
 
-			if (!ActorType.IsActorTypeSupported(basicActor.ObjectKind))
+			if (!basicActor.ObjectKind.IsSupportedType())
 			{
 				Log.Warning($"You cannot pin actor of type: {basicActor.ObjectKind}");
 				return;
@@ -120,81 +120,6 @@ namespace Anamnesis
 			return GetPinned(actor) != null;
 		}
 
-		public static List<ActorBasicMemory> GetAllActors()
-		{
-			int count = 0;
-			IntPtr startAddress;
-
-			if (GposeService.Instance.GetIsGPose())
-			{
-				count = MemoryService.Read<int>(AddressService.GPoseActorTable);
-				startAddress = AddressService.GPoseActorTable + 8;
-			}
-			else
-			{
-				// why 424?
-				count = 424;
-				startAddress = AddressService.ActorTable;
-			}
-
-			List<ActorBasicMemory> results = new();
-			for (int i = 0; i < count; i++)
-			{
-				IntPtr ptr = MemoryService.ReadPtr(startAddress + (i * 8));
-
-				if (ptr == IntPtr.Zero)
-					continue;
-
-				try
-				{
-					ActorBasicMemory actor = new();
-					actor.SetAddress(ptr);
-					results.Add(actor);
-				}
-				catch (Exception ex)
-				{
-					Log.Warning(ex, $"Failed to create Actor Basic View Model for address: {ptr}");
-				}
-			}
-
-			return results;
-		}
-
-		public static int GetActorTableIndex(IntPtr pointer)
-		{
-			int count = 0;
-			IntPtr startAddress;
-
-			if (GposeService.Instance.GetIsGPose())
-			{
-				count = MemoryService.Read<int>(AddressService.GPoseActorTable);
-				startAddress = AddressService.GPoseActorTable + 8;
-			}
-			else
-			{
-				// why 424?
-				count = 424;
-				startAddress = AddressService.ActorTable;
-			}
-
-			for (int i = 0; i < count; i++)
-			{
-				IntPtr ptr = MemoryService.ReadPtr(startAddress + (i * 8));
-
-				if (ptr == pointer)
-				{
-					return i;
-				}
-			}
-
-			return -1;
-		}
-
-		public static bool IsActorInActorTable(IntPtr pointer)
-		{
-			return GetActorTableIndex(pointer) != -1;
-		}
-
 		public static void SetPlayerTarget(PinnedActor actor)
 		{
 			if (actor.IsValid)
@@ -202,7 +127,7 @@ namespace Anamnesis
 				IntPtr? ptr = actor.Pointer;
 				if (ptr != null && ptr != IntPtr.Zero)
 				{
-					if (IsActorInActorTable((IntPtr)ptr))
+					if (ActorService.Instance.IsActorInTable((IntPtr)ptr))
 					{
 						if (GposeService.Instance.IsGpose)
 						{
@@ -268,7 +193,7 @@ namespace Anamnesis
 			{
 				try
 				{
-					List<ActorBasicMemory> allActors = GetAllActors();
+					List<ActorBasicMemory> allActors = ActorService.Instance.GetAllActors();
 
 					foreach (ActorBasicMemory actor in allActors)
 					{
@@ -477,7 +402,7 @@ namespace Anamnesis
 					if (this.Memory == null || this.Memory.Address == IntPtr.Zero)
 						return;
 
-					if (!IsActorInActorTable(this.Memory.Address))
+					if (!ActorService.Instance.IsActorInTable(this.Memory.Address))
 					{
 						Log.Information($"Actor: {this} was not in actor table");
 						this.Retarget();
@@ -523,12 +448,19 @@ namespace Anamnesis
 						this.Memory.PropertyChanged -= this.OnViewModelPropertyChanged;
 
 					ActorBasicMemory? newBasic = null;
+					bool isGPose = GposeService.GetIsGPose();
+
+					List<ActorBasicMemory> allActors = ActorService.Instance.GetAllActors();
 
 					// Search for an exact match first
-					foreach (ActorBasicMemory actor in TargetService.GetAllActors())
+					foreach (ActorBasicMemory actor in allActors)
 					{
 						if (actor.Id != this.Id || actor.Address == IntPtr.Zero)
 							continue;
+
+						// Don't consider overworld actors while we are in gpose
+						////if (isGPose && actor.IsOverworldActor)
+						////	continue;
 
 						newBasic = actor;
 						break;
@@ -537,10 +469,14 @@ namespace Anamnesis
 					// fall back to ignoring addresses
 					if (newBasic == null)
 					{
-						foreach (ActorBasicMemory actor in TargetService.GetAllActors())
+						foreach (ActorBasicMemory actor in allActors)
 						{
 							if (actor.IdNoAddress != this.IdNoAddress || actor.Address == IntPtr.Zero)
 								continue;
+
+							// Don't consider overworld actors while we are in gpose
+							////if (isGPose && actor.IsOverworldActor)
+							////	continue;
 
 							// Is this actor memory already pinned to a differnet pin?
 							PinnedActor? pinned = TargetService.GetPinned(actor);
@@ -556,7 +492,8 @@ namespace Anamnesis
 					{
 						if (this.Memory != null)
 						{
-							this.Memory.Address = newBasic.Address;
+							////this.Memory.Address = newBasic.Address;
+							this.Memory.SetAddress(newBasic.Address);
 
 							try
 							{

@@ -4,31 +4,35 @@
 namespace Anamnesis.Services
 {
 	using System;
+	using System.Collections.Concurrent;
+	using System.Collections.Generic;
+	using System.Linq;
 	using System.Threading.Tasks;
 	using Anamnesis.Core.Memory;
 	using Anamnesis.Memory;
-	using Anamnesis.PoseModule;
+	using Anamnesis.Utils;
 	using PropertyChanged;
 
 	[AddINotifyPropertyChangedInterface]
 	public class AnimationService : ServiceBase<AnimationService>
 	{
-		private const ushort ResetAnimationId = 0;
-		private const ushort DrawWeaponAnimationid = 190;
-		private const byte AnimationOverrideMode = 0x8;
+		private const int TickDelay = 1000;
+		private const ushort DrawWeaponAnimationId = 34;
+		private const ushort IdleAnimationId = 3;
+
+		private readonly ConcurrentDictionary<ActorRef<ActorMemory>, AnimationState> animationStates = new();
 
 		private NopHookViewModel? animationSpeedHook;
+		private bool speedControlEnabled = false;
 
-		private bool isEnabled = false;
-
-		public bool Enabled
+		public bool SpeedControlEnabled
 		{
-			get => this.isEnabled;
+			get => this.speedControlEnabled;
 			set
 			{
-				if (this.isEnabled != value)
+				if (this.speedControlEnabled != value)
 				{
-					this.SetEnabled(value);
+					this.SetSpeedControlEnabled(value);
 				}
 			}
 		}
@@ -36,58 +40,215 @@ namespace Anamnesis.Services
 		public override Task Start()
 		{
 			GposeService.GposeStateChanging += this.GposeService_GposeStateChanging;
-			PoseService.EnabledChanged += this.PoseService_EnabledChanged;
+			TerritoryService.TerritoryChanged += this.TerritoryService_TerritoryChanged;
 
 			this.animationSpeedHook = new NopHookViewModel(AddressService.AnimationSpeedPatch, 0x9);
 
-			this.AutoUpdateEnabledStatus();
+			this.GposeService_GposeStateChanging();
+
+			_ = Task.Run(this.CheckThread);
 
 			return base.Start();
 		}
 
-		public void ApplyAnimationOverride(ActorMemory actor, ushort? animationId, float? animationSpeed, bool interrupt)
-		{
-			MemoryService.Write(actor.GetAddressOfProperty(nameof(ActorMemory.AnimationMode)), AnimationOverrideMode, "Animation Mode Override");
-
-			if (animationSpeed != null && actor.AnimationSpeed != animationSpeed)
-			{
-				MemoryService.Write(actor.GetAddressOfProperty(nameof(ActorMemory.AnimationSpeed)), animationSpeed, "Animation Speed Override");
-			}
-
-			if (animationId != null && actor.AnimationOverride != animationId)
-			{
-				if (animationId < GameDataService.ActionTimelines.RowCount)
-				{
-					MemoryService.Write(actor.GetAddressOfProperty(nameof(ActorMemory.AnimationOverride)), animationId, "Animation ID Override");
-				}
-			}
-
-			if (interrupt)
-			{
-				MemoryService.Write<ushort>(actor.GetAddressOfProperty(nameof(ActorMemory.TargetAnimation)), 0, "Animation Interrupt");
-			}
-		}
-
-		public void ResetAnimationOverride(ActorMemory actor) => this.ApplyAnimationOverride(actor, ResetAnimationId, 1, true);
-
-		public void DrawWeapon(ActorMemory actor) => this.ApplyAnimationOverride(actor, DrawWeaponAnimationid, null, true);
-
 		public override async Task Shutdown()
 		{
 			GposeService.GposeStateChanging -= this.GposeService_GposeStateChanging;
-			PoseService.EnabledChanged -= this.PoseService_EnabledChanged;
+			TerritoryService.TerritoryChanged -= this.TerritoryService_TerritoryChanged;
 
-			this.Enabled = false;
+			this.SpeedControlEnabled = false;
+
+			this.CleanupAllAnimationOverrides();
 
 			await base.Shutdown();
 		}
 
-		private void SetEnabled(bool enabled)
+		public void DrawWeapon(ActorRef<ActorMemory> actor) => this.PlayAnimation(actor, DrawWeaponAnimationId, 1.0f, true);
+		public void IdleCharacter(ActorRef<ActorMemory> actor) => this.PlayAnimation(actor, IdleAnimationId, 1.0f, true);
+
+		public void PlayAnimation(ActorRef<ActorMemory> actorRef, ushort? animationId, float? animationSpeed, bool interrupt)
 		{
-			if (this.isEnabled == enabled)
+			if (!actorRef.TryGetMemory(out var memory))
 				return;
 
-			this.isEnabled = enabled;
+			var animState = this.GetAnimationState(actorRef);
+
+			if (animState.Status == AnimationState.AnimationStatus.Paused)
+				this.Unpause(actorRef);
+
+			if (animState.Status == AnimationState.AnimationStatus.Inactive)
+			{
+				animState.OriginalCharacterMode = memory.CharacterMode;
+				animState.OriginalCharacterModeInput = memory.CharacterModeInput;
+			}
+
+			animState.Status = AnimationState.AnimationStatus.Active;
+			this.ApplyAnimationOverride(memory, animationId, animationSpeed, interrupt, ActorMemory.CharacterModes.AnimLock, 0);
+		}
+
+		public void ResetAnimationOverride(ActorRef<ActorMemory> actorRef)
+		{
+			if (!actorRef.TryGetMemory(out var memory))
+				return;
+
+			var animState = this.GetAnimationState(actorRef);
+
+			if (animState.Status == AnimationState.AnimationStatus.Paused)
+				this.Unpause(actorRef);
+
+			if (animState.Status == AnimationState.AnimationStatus.Active)
+			{
+				ActorMemory.CharacterModes mode = animState.OriginalCharacterMode;
+				byte modeInput = animState.OriginalCharacterModeInput;
+
+				if (!this.CanSafelyApplyMode(memory, mode, modeInput))
+				{
+					mode = ActorMemory.CharacterModes.Normal;
+					modeInput = 0;
+				}
+
+				animState.Status = AnimationState.AnimationStatus.Inactive;
+				this.ApplyAnimationOverride(memory, 0, 1f, true, mode, modeInput);
+			}
+		}
+
+		public void TogglePaused(ActorRef<ActorMemory> actorRef, float newSpeed = 1.0f)
+		{
+			if (!actorRef.IsValid)
+				return;
+
+			var animState = this.GetAnimationState(actorRef);
+
+			if (animState.Status == AnimationState.AnimationStatus.Paused)
+			{
+				this.Unpause(actorRef, newSpeed);
+			}
+			else
+			{
+				this.Pause(actorRef);
+			}
+		}
+
+		public void Unpause(ActorRef<ActorMemory> actorRef, float newSpeed = 1.0f)
+		{
+			if (!actorRef.TryGetMemory(out var memory))
+				return;
+
+			var animState = this.GetAnimationState(actorRef);
+
+			if (animState.Status == AnimationState.AnimationStatus.Paused)
+			{
+				ActorMemory.CharacterModes mode = animState.PausedCharacterMode;
+				byte modeInput = animState.PausedCharacterModeInput;
+
+				if (!this.CanSafelyApplyMode(memory, mode, modeInput))
+				{
+					mode = ActorMemory.CharacterModes.Normal;
+					modeInput = 0;
+				}
+
+				animState.Status = animState.PausedStatus;
+				this.ApplyAnimationOverride(memory, null, newSpeed, false, mode, modeInput);
+			}
+		}
+
+		public void Pause(ActorRef<ActorMemory> actorRef)
+		{
+			if (!actorRef.TryGetMemory(out var memory))
+				return;
+
+			var animState = this.GetAnimationState(actorRef);
+
+			if (animState.Status != AnimationState.AnimationStatus.Paused)
+			{
+				animState.PausedStatus = animState.Status;
+				animState.PausedCharacterMode = memory.CharacterMode;
+				animState.PausedCharacterModeInput = memory.CharacterModeInput;
+				animState.Status = AnimationState.AnimationStatus.Paused;
+
+				this.ApplyAnimationOverride(memory, null, 0.0f, false, ActorMemory.CharacterModes.EmoteLoop, 0);
+			}
+		}
+
+		private async Task CheckThread()
+		{
+			while (this.IsAlive)
+			{
+				await Task.Delay(TickDelay);
+
+				this.CleanupInvalidOverrides();
+			}
+		}
+
+		private void CleanupAllAnimationOverrides()
+		{
+			foreach ((var actorRef, _) in this.animationStates)
+			{
+					this.ResetAnimationOverride(actorRef);
+			}
+
+			this.animationStates.Clear();
+		}
+
+		private void CleanupInvalidOverrides()
+		{
+			var stale = this.animationStates.Select(x => x.Key).Where(actor => !actor.IsValid).ToList();
+			foreach (var actorRef in stale)
+			{
+				this.animationStates.TryRemove(actorRef, out var removedState);
+			}
+		}
+
+		private void CleanupPaused()
+		{
+			foreach ((var actorRef, _) in this.animationStates)
+			{
+				this.Unpause(actorRef);
+			}
+		}
+
+		private bool CanSafelyApplyMode(ActorMemory actor, ActorMemory.CharacterModes mode, byte modeInput)
+		{
+			// We do some special handling for mounts and ornaments so we don't crash if an overworld actor dismounted during posing
+			if (mode == ActorMemory.CharacterModes.HasAttachment)
+			{
+				if ((modeInput == 0 && actor.Mount == null) || (modeInput != 0 && actor.Ornament == null))
+					return false;
+			}
+
+			return true;
+		}
+
+		private void ApplyAnimationOverride(ActorMemory memory, ushort? animationId, float? animationSpeed, bool interrupt, ActorMemory.CharacterModes mode, byte modeInput)
+		{
+			if (this.SpeedControlEnabled && animationSpeed != null && memory.AnimationSpeed != animationSpeed)
+			{
+				MemoryService.Write(memory.GetAddressOfProperty(nameof(ActorMemory.AnimationSpeed)), animationSpeed, "Animation Speed Override");
+			}
+
+			if (animationId != null && memory.AnimationOverride != animationId)
+			{
+				if (animationId < GameDataService.ActionTimelines.RowCount)
+				{
+					MemoryService.Write(memory.GetAddressOfProperty(nameof(ActorMemory.AnimationOverride)), animationId, "Animation ID Override");
+				}
+			}
+
+			MemoryService.Write(memory.GetAddressOfProperty(nameof(ActorMemory.CharacterModeInput)), modeInput, "Animation Mode Override"); // Always set the input before the mode
+			MemoryService.Write(memory.GetAddressOfProperty(nameof(ActorMemory.CharacterMode)), mode, "Animation Mode Override");
+
+			if (interrupt)
+			{
+				MemoryService.Write<ushort>(memory.GetAddressOfProperty(nameof(ActorMemory.TargetAnimation)), 0, "Animation Interrupt");
+			}
+
+			memory.Tick();
+		}
+
+		private void SetSpeedControlEnabled(bool enabled)
+		{
+			if (this.speedControlEnabled == enabled)
+				return;
 
 			if (enabled)
 			{
@@ -95,17 +256,54 @@ namespace Anamnesis.Services
 			}
 			else
 			{
+				this.CleanupPaused();
 				this.animationSpeedHook?.SetEnabled(false);
 			}
+
+			this.speedControlEnabled = enabled;
 		}
 
-		private void AutoUpdateEnabledStatus()
+		private void GposeService_GposeStateChanging() => this.SpeedControlEnabled = GposeService.Instance.IsGpose;
+
+		private void TerritoryService_TerritoryChanged() => this.CleanupAllAnimationOverrides();
+
+		private AnimationState GetAnimationState(ActorRef<ActorMemory> actorRef)
 		{
-			this.Enabled = GposeService.Instance.IsGpose && !PoseService.Instance.IsEnabled;
+			AnimationState animState = new();
+
+			if (this.animationStates.TryAdd(actorRef, animState))
+			{
+				if(actorRef.TryGetMemory(out var memory))
+				{
+					animState.OriginalCharacterMode = memory.CharacterMode;
+					animState.OriginalCharacterModeInput = memory.CharacterModeInput;
+				}
+				else
+				{
+					animState.OriginalCharacterMode = ActorMemory.CharacterModes.Normal;
+					animState.OriginalCharacterModeInput = 0;
+				}
+			}
+
+			return this.animationStates[actorRef];
 		}
 
-		private void GposeService_GposeStateChanging() => this.AutoUpdateEnabledStatus();
+		public class AnimationState
+		{
+			public enum AnimationStatus
+			{
+				Inactive,
+				Active,
+				Paused,
+			}
 
-		private void PoseService_EnabledChanged(bool value) => this.AutoUpdateEnabledStatus();
+			public AnimationStatus Status { get; set; } = AnimationStatus.Inactive;
+			public ActorMemory.CharacterModes OriginalCharacterMode { get; set; }
+			public byte OriginalCharacterModeInput { get; set; }
+
+			public AnimationStatus PausedStatus { get; set; }
+			public ActorMemory.CharacterModes PausedCharacterMode { get; set; }
+			public byte PausedCharacterModeInput { get; set; }
+		}
 	}
 }

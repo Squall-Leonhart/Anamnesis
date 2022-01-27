@@ -24,7 +24,7 @@
 
 		<Grid Grid.RowSpan="2"
 			  Grid.Column="0"
-			  IsEnabled="{Binding ActorRefreshService.CanRefresh}">
+			  IsEnabled="{Binding Actor.CanRefresh}">
 
 			<GroupBox Padding="3,0,3,0"
 					  Style="{StaticResource PanelGroupBox}">
@@ -100,7 +100,7 @@
 		<XivToolsWpf:InfoControl Grid.Column="0"
 								 Grid.ColumnSpan="2"
 								 Margin="12"
-								 Visibility="{Binding ActorRefreshService.CanRefresh, Converter={StaticResource !B2V}}"
+								 Visibility="{Binding Actor.CanRefresh, Converter={StaticResource !B2V}}"
 								 Key="Character_WarningGpose" />
 
 		<Grid Grid.Column="2">
@@ -119,13 +119,14 @@
 											Icon="Horse" />
 					</GroupBox.Header>
 
-					<Grid Margin="0,-6,0,0">
+					<Grid>
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="Auto" />
 							<ColumnDefinition />
 						</Grid.ColumnDefinitions>
 
 						<Grid.RowDefinitions>
+							<RowDefinition />
 							<RowDefinition />
 							<RowDefinition />
 							<RowDefinition />
@@ -154,7 +155,7 @@
 							<ComboBox ItemsSource="{Binding Source={x:Static anaMem:ActorType.AllActorTypes}}" SelectedIndex="{Binding Actor.ObjectKindInt}">
 								<ComboBox.ItemContainerStyle>
 									<Style TargetType="{x:Type ComboBoxItem}">
-										<Setter Property="IsEnabled" Value="{Binding IsTypeSupported}"/>
+										<Setter Property="IsEnabled" Value="{Binding IsSupportedType}"/>
 									</Style>
 								</ComboBox.ItemContainerStyle>
 								
@@ -173,7 +174,7 @@
 						<Grid Grid.Row="3"
 							  Grid.Column="1"
 							  Margin="0,2,0,0"
-							  IsEnabled="{Binding GPoseService.IsOverworld}">
+							  IsEnabled="{Binding Actor.IsOverworldActor}">
 							<views:ModelTypeEditor DataContext="{Binding Actor}" />
 						</Grid>
 
@@ -190,6 +191,18 @@
 											   Value="{Binding Actor.Transparency}" />
 
 
+						<XivToolsWpf:TextBlock Key="SubActor_Title"
+											   Grid.Row="5"
+											   Grid.Column="0"
+											   Style="{StaticResource Label}" />
+						
+						<StackPanel Orientation="Horizontal" Grid.Row="5" Grid.Column="1" Margin="0, 6, 0, 0">
+							<views:SubActorEditor Actor="{Binding Actor}" SubActor="{Binding Actor.Mount}" SubActorType="Mount" Margin="3,0"/>
+							<views:SubActorEditor Actor="{Binding Actor}" SubActor="{Binding Actor.Companion}" SubActorType="Companion" Margin="3,0"/>
+							<views:SubActorEditor Actor="{Binding Actor}" SubActor="{Binding Actor.Ornament}" SubActorType="Ornament" Margin="3,0"/>
+						</StackPanel>
+
+
 					</Grid>
 
 				</GroupBox>
@@ -202,7 +215,7 @@
 												Icon="GraduationCap" />
 						</GroupBox.Header>
 
-						<views:CharacterModelEditor DataContext="{Binding Actor}" />
+						<views:CharacterModelEditor DataContext="{Binding Actor}"/>
 					</GroupBox>
 				</Grid>
 
@@ -213,13 +226,15 @@
 											Icon="UserCog" />
 					</GroupBox.Header>
 
-					<views:ExtendedAppearanceEditor DataContext="{Binding Actor.ModelObject.ExtendedAppearance}" />
+					<views:ExtendedAppearanceEditor DataContext="{Binding Actor.ModelObject.ExtendedAppearance}"/>
 
 				</GroupBox>
 			</StackPanel>
 
 			<StackPanel Orientation="Vertical" Grid.Row="1">
-				<Menu Style="{StaticResource AnaMenu}" Margin="0,3, 0, 2"  HorizontalAlignment="Right">
+				<Menu Grid.Row="1"
+				  Margin="0,3, 3, 4"
+				  Style="{StaticResource AnaMenu}">
 
 					<MenuItem Header="Common_OpenFile"
 						  Icon="FolderOpen"
@@ -271,22 +286,12 @@
 							  Click="OnLoadNpcWeaponsClicked" />
 					</MenuItem>
 
-					<MenuItem Style="{StaticResource ButtonMenuItem}"
-							  Header="Character_Appearance_LoadObject"
-							  Icon="MugHot"
-							  Margin="-1,0,3,0"
-							 Click="OnLoadObjectClicked">
-					</MenuItem>
-
-
+					<MenuItem Header="Common_SaveFile"
+						  Icon="Save"
+						  Style="{StaticResource ButtonMenuItem}"
+						  Click="OnSaveClicked" />
 				</Menu>
-
-                <MenuItem Header="Common_SaveFile"
-                          Icon="Save"
-                          Margin="2, 3, 3, 4"
-                          Style="{StaticResource ButtonMenuItem}"
-                          Click="OnSaveClicked" />
-            </StackPanel>
+			</StackPanel>
 
 			
 

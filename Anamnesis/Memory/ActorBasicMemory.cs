@@ -5,6 +5,8 @@ namespace Anamnesis.Memory
 {
 	using System;
 	using System.Collections.Generic;
+	using Anamnesis.PoseModule;
+	using Anamnesis.Services;
 	using Anamnesis.Styles;
 	using Anamnesis.Utils;
 	using FontAwesome.Sharp;
@@ -18,7 +20,7 @@ namespace Anamnesis.Memory
 		[Bind(0x074)] public uint ObjectId { get; set; }
 		[Bind(0x080)] public uint DataId { get; set; }
 		[Bind(0x084)] public uint OwnerId { get; set; }
-
+		[Bind(0x088)] public ushort ObjectIndex { get; set; }
 		[Bind(0x08c, BindFlags.ActorRefresh)] public ActorTypes ObjectKind { get; set; }
 		[Bind(0x090)] public byte DistanceFromPlayerX { get; set; }
 		[Bind(0x092)] public byte DistanceFromPlayerY { get; set; }
@@ -30,8 +32,26 @@ namespace Anamnesis.Memory
 		public double DistanceFromPlayer => Math.Sqrt(((int)this.DistanceFromPlayerX ^ 2) + ((int)this.DistanceFromPlayerY ^ 2));
 		public string NameHash => HashUtility.GetHashString(this.NameBytes.ToString(), true);
 
-		[AlsoNotifyFor(nameof(ActorMemory.DisplayName))]
+		[AlsoNotifyFor(nameof(DisplayName))]
 		public string? Nickname { get; set; }
+
+		[DependsOn(nameof(ObjectIndex))]
+		public bool IsGPoseActor => this.ObjectIndex >= 200 && this.ObjectIndex < 244;
+
+		[DependsOn(nameof(IsGPoseActor))]
+		public bool IsOverworldActor => !this.IsGPoseActor;
+
+		[DependsOn(nameof(IsOverworldActor))]
+		public bool CanRefresh
+		{
+			get
+			{
+				if (PoseService.Instance.IsEnabled)
+					return false;
+
+				return this.IsOverworldActor;
+			}
+		}
 
 		/// <summary>
 		/// Gets the Nickname or if not set, the Name.
@@ -72,7 +92,7 @@ namespace Anamnesis.Memory
 
 			this.owner = null;
 
-			List<ActorBasicMemory>? actors = TargetService.GetAllActors();
+			List<ActorBasicMemory>? actors = ActorService.Instance.GetAllActors();
 
 			foreach(ActorBasicMemory actor in actors)
 			{
