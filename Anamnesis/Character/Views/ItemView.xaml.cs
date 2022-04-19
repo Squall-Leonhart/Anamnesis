@@ -8,6 +8,7 @@ namespace Anamnesis.Character.Views
 	using System.Threading.Tasks;
 	using System.Windows;
 	using System.Windows.Controls;
+	using System.Windows.Input;
 	using System.Windows.Media;
 	using Anamnesis.Character.Utilities;
 	using Anamnesis.GameData;
@@ -79,7 +80,7 @@ namespace Anamnesis.Character.Views
 			set
 			{
 				IItem? item = GameDataService.Items?.Get(value);
-				this.SetItem(item, false);
+				this.SetItem(item);
 			}
 		}
 
@@ -141,16 +142,40 @@ namespace Anamnesis.Character.Views
 				return;
 
 			EquipmentSelector selector = new EquipmentSelector(this.Slot, this.Actor);
-			SelectorDrawer.Show(selector, this.Item, (i) => this.SetItem(i, selector.AutoOffhand));
+			SelectorDrawer.Show(selector, this.Item, (i) => this.SetItem(i, selector.AutoOffhand, selector.ForceMainModel, selector.ForceOffModel));
 		}
 
-		private void SetItem(IItem? item, bool autoOffhand)
+		private void OnMouseUp(object sender, MouseButtonEventArgs e)
+		{
+			if (this.Actor?.CanRefresh != true)
+				return;
+
+			if (e.ChangedButton == MouseButton.Middle && e.ButtonState == MouseButtonState.Released)
+			{
+				this.ItemModel?.Clear(this.Actor.IsPlayer);
+			}
+		}
+
+		private void SetItem(IItem? item, bool autoOffhand = false, bool forceMain = false, bool forceOff = false)
 		{
 			this.lockViewModel = true;
 
 			if (item != null)
 			{
 				bool useSubModel = this.Slot == ItemSlots.OffHand && item.HasSubModel;
+
+				if (item.HasSubModel)
+				{
+					if (forceMain)
+					{
+						useSubModel = false;
+					}
+					else if (forceOff)
+					{
+						useSubModel = true;
+					}
+				}
+
 				ushort modelSet = useSubModel ? item.SubModelSet : item.ModelSet;
 				ushort modelBase = useSubModel ? item.SubModelBase : item.ModelBase;
 				ushort modelVariant = useSubModel ? item.SubModelVariant : item.ModelVariant;
@@ -169,6 +194,11 @@ namespace Anamnesis.Character.Views
 					{
 						this.SetModel(this.Actor?.OffHand, 0, 0, 0);
 					}
+				}
+
+				if (item == ItemUtility.NoneItem || item == ItemUtility.EmperorsNewFists)
+				{
+					this.Dye = ItemUtility.NoneDye;
 				}
 			}
 

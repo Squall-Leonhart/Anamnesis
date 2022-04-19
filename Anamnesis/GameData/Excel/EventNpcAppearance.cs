@@ -104,6 +104,9 @@ namespace Anamnesis.GameData.Excel
 
 			Lumina.Excel.GeneratedSheets.NpcEquip? npcEquip = parser.ReadRowReference<ushort, Lumina.Excel.GeneratedSheets.NpcEquip>(63);
 
+			if (npcEquip?.RowId == 175)
+				npcEquip = null;
+
 			this.MainHand = LuminaExtensions.GetWeaponItem(ItemSlots.MainHand, parser.ReadColumn<ulong>(65));
 			this.DyeMainHand = parser.ReadRowReference<byte, Stain>(66);
 			this.OffHand = LuminaExtensions.GetWeaponItem(ItemSlots.OffHand, parser.ReadColumn<ulong>(67));
@@ -112,7 +115,7 @@ namespace Anamnesis.GameData.Excel
 			this.DyeHead = parser.ReadRowReference<byte, Stain>(70);
 			this.Body = this.GetItem(ItemSlots.Body, parser.ReadColumn<uint>(72), npcEquip?.ModelBody);
 			this.DyeBody = parser.ReadRowReference<byte, Stain>(73);
-			this.Hands = this.GetItem(ItemSlots.Hands, parser.ReadColumn<uint>(74), npcEquip?.ModelHead);
+			this.Hands = this.GetItem(ItemSlots.Hands, parser.ReadColumn<uint>(74), npcEquip?.ModelHands);
 			this.DyeHands = parser.ReadRowReference<byte, Stain>(75);
 			this.Legs = this.GetItem(ItemSlots.Legs, parser.ReadColumn<uint>(76), npcEquip?.ModelLegs);
 			this.DyeLegs = parser.ReadRowReference<byte, Stain>(77);

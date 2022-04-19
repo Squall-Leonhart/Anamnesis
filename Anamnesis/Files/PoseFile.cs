@@ -33,7 +33,7 @@ namespace Anamnesis.Files
 
 		public Dictionary<string, Bone?>? Bones { get; set; }
 
-		public static async Task<DirectoryInfo?> Save(DirectoryInfo? dir, ActorMemory? actor, SkeletonVisual3d? skeleton, HashSet<string>? bones = null)
+		public static async Task<DirectoryInfo?> Save(DirectoryInfo? dir, ActorMemory? actor, SkeletonVisual3d? skeleton, HashSet<string>? bones = null, bool editMeta = false)
 		{
 			if (actor == null || skeleton == null)
 				return null;
@@ -48,6 +48,10 @@ namespace Anamnesis.Files
 
 			using FileStream stream = new FileStream(result.Path.FullName, FileMode.Create);
 			file.Serialize(stream);
+
+			if (editMeta)
+				FileMetaEditor.Show(result.Path, file);
+
 			return result.Directory;
 		}
 
@@ -131,7 +135,7 @@ namespace Anamnesis.Files
 					throw new Exception("Unable to find head (j_kao) bone.");
 
 				headBone.Tick();
-				originalHeadRotation = headBone?.TransformMemory.Rotation;
+				originalHeadRotation = headBone?.Rotation;
 			}
 
 			// Apply all transforms a few times to ensure parent-inherited values are caluclated correctly, and to ensure
@@ -190,12 +194,7 @@ namespace Anamnesis.Files
 			// Restore the head bone rotation if we were only loading an expression
 			if (headBone != null && originalHeadRotation != null)
 			{
-				foreach (TransformMemory vm in headBone.TransformMemories)
-				{
-					vm.Rotation = (Quaternion)originalHeadRotation;
-				}
-
-				headBone.ReadTransform();
+				headBone.Rotation = (Quaternion)originalHeadRotation;
 				headBone.WriteTransform(skeleton, true);
 			}
 

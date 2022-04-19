@@ -31,8 +31,8 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Lumina" Version="3.5.1" />
-		<PackageReference Include="Lumina.Excel" Version="6.0.2" />
+		<PackageReference Include="Lumina" Version="3.5.2" />
+		<PackageReference Include="Lumina.Excel" Version="6.1.1" />
 		<PackageReference Include="PropertyChanged.Fody" Version="3.4.0">
 			<PrivateAssets>All</PrivateAssets>
 			<IncludeAssets></IncludeAssets>
@@ -55,7 +55,6 @@
 		<Resource Include="Assets\Roles\*.*" />
 		<Resource Include="Assets\Shortcuts\*.*" />
 		<Resource Include="Assets\Slots\*.*" />
-		<Resource Include="Data\colors.dat" />
 		<Resource Include="FodyWeavers.xml" />
 
 		<EmbeddedResource Include="Languages\*.*" />
@@ -63,11 +62,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Data\LegacyBoneNameConverter.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Include="Posing\LegacyBoneNameConverter.cs" />
+	  <Content Include="$(AppData)\Anamnesis\Settings.json" Link="Settings.json" />
 	</ItemGroup>
 
 	<ItemGroup>

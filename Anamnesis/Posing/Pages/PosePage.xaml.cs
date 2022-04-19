@@ -46,6 +46,8 @@ namespace Anamnesis.PoseModule.Pages
 			this.InitializeComponent();
 
 			this.ContentArea.DataContext = this;
+
+			HistoryService.OnHistoryApplied += this.OnHistoryApplied;
 		}
 
 		public SettingsService SettingsService => SettingsService.Instance;
@@ -193,9 +195,6 @@ namespace Anamnesis.PoseModule.Pages
 				return;
 			}
 
-			if (!this.IsVisible)
-				return;
-
 			try
 			{
 				if (this.Skeleton == null)
@@ -236,6 +235,18 @@ namespace Anamnesis.PoseModule.Pages
 		private async void OnOpenAllClicked(object sender, RoutedEventArgs e)
 		{
 			await this.Open(false, PoseFile.Mode.All);
+		}
+
+		private async void OnOpenBodyClicked(object sender, RoutedEventArgs e)
+		{
+			if (this.Skeleton == null)
+				return;
+
+			this.Skeleton.SelectHead();
+			this.Skeleton.InvertSelection();
+
+			await this.Open(true, PoseFile.Mode.Rotation);
+			this.Skeleton.ClearSelection();
 		}
 
 		private async void OnOpenExpressionClicked(object sender, RoutedEventArgs e)
@@ -323,6 +334,11 @@ namespace Anamnesis.PoseModule.Pages
 			lastSaveDir = await PoseFile.Save(lastSaveDir, this.Actor, this.Skeleton);
 		}
 
+		private async void OnSaveMetaClicked(object sender, RoutedEventArgs e)
+		{
+			lastSaveDir = await PoseFile.Save(lastSaveDir, this.Actor, this.Skeleton, null, true);
+		}
+
 		private async void OnSaveSelectedClicked(object sender, RoutedEventArgs e)
 		{
 			if (this.Skeleton == null)
@@ -347,7 +363,6 @@ namespace Anamnesis.PoseModule.Pages
 			this.GuiView.Visibility = selected == 0 ? Visibility.Visible : Visibility.Collapsed;
 			this.MatrixView.Visibility = selected == 1 ? Visibility.Visible : Visibility.Collapsed;
 			this.ThreeDView.Visibility = selected == 2 ? Visibility.Visible : Visibility.Collapsed;
-			this.FlipSidesOption.Visibility = this.GuiView.Visibility;
 		}
 
 		private void OnClearClicked(object? sender, RoutedEventArgs? e)
@@ -531,6 +546,11 @@ namespace Anamnesis.PoseModule.Pages
 			}
 
 			this.MouseCanvas.ReleaseMouseCapture();
+		}
+
+		private void OnHistoryApplied()
+		{
+			this.Skeleton?.CurrentBone?.ReadTransform();
 		}
 
 		private async Task WriteSkeletonThread()

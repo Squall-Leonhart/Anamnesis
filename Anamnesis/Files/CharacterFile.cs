@@ -6,6 +6,7 @@ namespace Anamnesis.Files
 	using System;
 	using System.IO;
 	using System.Threading.Tasks;
+	using Anamnesis.Character.Utilities;
 	using Anamnesis.GameData.Excel;
 	using Anamnesis.Memory;
 	using Anamnesis.Services;
@@ -100,24 +101,6 @@ namespace Anamnesis.Files
 		public float? Transparency { get; set; }
 		public float? MuscleTone { get; set; }
 		public float? HeightMultiplier { get; set; }
-
-		public static async Task<DirectoryInfo?> Save(DirectoryInfo? defaultDir, ActorMemory? actor, SaveModes mode = SaveModes.All)
-		{
-			if (actor == null)
-				return null;
-
-			SaveResult result = await FileService.Save<CharacterFile>(defaultDir, FileService.DefaultCharacterDirectory);
-
-			if (result.Path == null)
-				return null;
-
-			CharacterFile file = new CharacterFile();
-			file.WriteToFile(actor, mode);
-
-			using FileStream stream = new FileStream(result.Path.FullName, FileMode.Create);
-			file.Serialize(stream);
-			return result.Directory;
-		}
 
 		public void WriteToFile(ActorMemory actor, SaveModes mode)
 		{
@@ -237,6 +220,12 @@ namespace Anamnesis.Files
 
 		public async Task Apply(ActorMemory actor, SaveModes mode)
 		{
+			if (this.Tribe == 0)
+				this.Tribe = ActorCustomizeMemory.Tribes.Midlander;
+
+			if (this.Race == 0)
+				this.Race = ActorCustomizeMemory.Races.Hyur;
+
 			if (this.Tribe != null && !Enum.IsDefined((ActorCustomizeMemory.Tribes)this.Tribe))
 				throw new Exception($"Invalid tribe: {this.Tribe} in appearance file");
 
@@ -273,8 +262,8 @@ namespace Anamnesis.Files
 
 				if (this.IncludeSection(SaveModes.EquipmentWeapons, mode))
 				{
-					this.MainHand?.Write(actor.MainHand);
-					this.OffHand?.Write(actor.OffHand);
+					this.MainHand?.Write(actor.MainHand, true);
+					this.OffHand?.Write(actor.OffHand, false);
 				}
 
 				if (this.IncludeSection(SaveModes.EquipmentGear, mode))
@@ -461,7 +450,7 @@ namespace Anamnesis.Files
 			public ushort ModelVariant { get; set; }
 			public byte DyeId { get; set; }
 
-			public void Write(WeaponMemory? vm)
+			public void Write(WeaponMemory? vm, bool isMainHand)
 			{
 				if (vm == null)
 					return;
@@ -477,9 +466,20 @@ namespace Anamnesis.Files
 				}
 				else
 				{
-					vm.Base = 0;
-					vm.Variant = 0;
-					vm.Dye = 0;
+					if (isMainHand)
+					{
+						vm.Set = ItemUtility.EmperorsNewFists.ModelSet;
+						vm.Base = ItemUtility.EmperorsNewFists.ModelBase;
+						vm.Variant = ItemUtility.EmperorsNewFists.ModelVariant;
+					}
+					else
+					{
+						vm.Set = 0;
+						vm.Base = 0;
+						vm.Variant = 0;
+					}
+
+					vm.Dye = ItemUtility.NoneDye.Id;
 				}
 			}
 		}

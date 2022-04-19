@@ -9,6 +9,7 @@ namespace Anamnesis
 	using System.ComponentModel;
 	using System.Threading.Tasks;
 	using Anamnesis.Core.Memory;
+	using Anamnesis.Keyboard;
 	using Anamnesis.Memory;
 	using Anamnesis.Services;
 	using Anamnesis.Styles;
@@ -31,8 +32,12 @@ namespace Anamnesis
 
 		public ActorBasicMemory PlayerTarget { get; private set; } = new();
 		public bool IsPlayerTargetPinnable => this.PlayerTarget.Address != IntPtr.Zero && this.PlayerTarget.ObjectKind.IsSupportedType();
-		public ActorMemory? SelectedActor { get; private set; }
+
+		public PinnedActor? CurrentlyPinned { get; private set; }
 		public ObservableCollection<PinnedActor> PinnedActors { get; set; } = new ObservableCollection<PinnedActor>();
+
+		[DependsOn(nameof(CurrentlyPinned))]
+		public ActorMemory? SelectedActor => this.CurrentlyPinned?.Memory;
 
 		public static async Task PinActor(ActorBasicMemory basicActor)
 		{
@@ -58,6 +63,10 @@ namespace Anamnesis
 				}
 
 				ActorMemory memory = new();
+
+				if (basicActor is ActorMemory actorMemory)
+					memory = actorMemory;
+
 				memory.SetAddress(basicActor.Address);
 				PinnedActor pined = new PinnedActor(memory);
 
@@ -92,7 +101,7 @@ namespace Anamnesis
 				}
 				else
 				{
-					Instance.SelectActor((ActorMemory?)null);
+					Instance.SelectActor(null);
 				}
 			}
 
@@ -189,6 +198,26 @@ namespace Anamnesis
 		{
 			await base.Start();
 
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned1", () => this.SelectActor(0));
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned2", () => this.SelectActor(1));
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned3", () => this.SelectActor(2));
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned4", () => this.SelectActor(3));
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned5", () => this.SelectActor(4));
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned6", () => this.SelectActor(5));
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned7", () => this.SelectActor(6));
+			HotkeyService.RegisterHotkeyHandler("TargetService.SelectPinned8", () => this.SelectActor(7));
+			HotkeyService.RegisterHotkeyHandler("TargetService.NextPinned", () => this.NextPinned());
+			HotkeyService.RegisterHotkeyHandler("TargetService.PrevPinned", () => this.PrevPinned());
+
+#if DEBUG
+			if (MemoryService.Process == null)
+			{
+				await TargetService.PinActor(new DummyActor(1));
+				await TargetService.PinActor(new DummyActor(2));
+				return;
+			}
+#endif
+
 			if (GameService.GetIsSignedIn())
 			{
 				try
@@ -224,7 +253,7 @@ namespace Anamnesis
 
 		public void ClearSelection()
 		{
-			if (this.SelectedActor == null)
+			if (this.CurrentlyPinned == null)
 				return;
 
 			if (App.Current == null)
@@ -232,7 +261,7 @@ namespace Anamnesis
 
 			App.Current.Dispatcher.Invoke(() =>
 			{
-				this.SelectedActor = null;
+				this.CurrentlyPinned = null;
 
 				foreach (PinnedActor actor in this.PinnedActors)
 				{
@@ -265,36 +294,83 @@ namespace Anamnesis
 
 			App.Current.Dispatcher.Invoke(() =>
 			{
-				this.SelectedActor = null;
+				this.CurrentlyPinned = null;
 				this.PinnedActors.Clear();
 			});
 		}
 
-		public async Task Retarget()
+		public void SelectActor(int index)
 		{
-			await Dispatch.MainThread();
-			this.SelectedActor = null;
+			if (index >= this.PinnedActors.Count || index < 0)
+				return;
 
-			if (this.PinnedActors.Count > 0)
+			if (this.PinnedActors[index].IsSelected)
 			{
-				this.SelectActor(this.PinnedActors[0]);
+				SetPlayerTarget(this.PinnedActors[index]);
+			}
+			else
+			{
+				this.SelectActor(this.PinnedActors[index]);
 			}
 		}
 
-		public void SelectActor(PinnedActor actor)
+		public int GetSelectedIndex()
 		{
-			this.SelectActor(actor.GetMemory());
-
-			foreach (PinnedActor ac in this.PinnedActors)
+			for (int i = 0; i < this.PinnedActors.Count; i++)
 			{
-				ac.SelectionChanged();
+				if (this.PinnedActors[i].IsSelected)
+				{
+					return i;
+				}
 			}
+
+			return 0;
 		}
 
-		public void SelectActor(ActorMemory? actor)
+		public void NextPinned()
 		{
-			this.SelectedActor = actor;
-			ActorSelected?.Invoke(actor);
+			int selectedIndex = this.GetSelectedIndex();
+			selectedIndex++;
+
+			if (selectedIndex >= this.PinnedActors.Count)
+				selectedIndex = 0;
+
+			this.SelectActor(selectedIndex);
+		}
+
+		public void PrevPinned()
+		{
+			int selectedIndex = this.GetSelectedIndex();
+			selectedIndex--;
+
+			if (selectedIndex < 0)
+				selectedIndex = this.PinnedActors.Count - 1;
+
+			this.SelectActor(selectedIndex);
+		}
+
+		public void SelectActor(PinnedActor? actor)
+		{
+			App.Current.Dispatcher.Invoke(() =>
+			{
+				if (this.CurrentlyPinned == actor)
+				{
+					// Raise the event in case the underlying memory changed
+					this.RaisePropertyChanged(nameof(TargetService.CurrentlyPinned));
+					this.RaisePropertyChanged(nameof(TargetService.SelectedActor));
+				}
+				else
+				{
+					this.CurrentlyPinned = actor;
+				}
+
+				ActorSelected?.Invoke(actor?.Memory);
+
+				foreach (PinnedActor ac in this.PinnedActors)
+				{
+					ac.SelectionChanged();
+				}
+			});
 		}
 
 		private async Task TickPinnedActors()
@@ -348,13 +424,7 @@ namespace Anamnesis
 			{
 				get
 				{
-					if (this.Pointer == null)
-						return false;
-
-					if (this.Memory != null && TargetService.Instance.SelectedActor == this.Memory)
-						return true;
-
-					return TargetService.Instance.SelectedActor?.Address == this.Pointer;
+					return TargetService.Instance.CurrentlyPinned == this;
 				}
 
 				set
@@ -453,11 +523,11 @@ namespace Anamnesis
 			{
 				if (this.Memory != null)
 				{
-					if (this.IsSelected)
-						TargetService.Instance.ClearSelection();
-
 					this.Memory.Dispose();
 					this.Memory = null;
+
+					if (this.IsSelected)
+						TargetService.Instance.SelectActor(this);
 				}
 
 				this.IsValid = false;
@@ -465,6 +535,15 @@ namespace Anamnesis
 
 			private void Retarget()
 			{
+#if DEBUG
+				if (MemoryService.Process == null)
+				{
+					this.IsValid = true;
+					this.IsRetargeting = false;
+					return;
+				}
+#endif
+
 				lock (this)
 				{
 					this.IsRetargeting = true;
@@ -519,27 +598,12 @@ namespace Anamnesis
 
 					if (newBasic != null)
 					{
-						if (this.Memory != null)
-						{
-							////this.Memory.Address = newBasic.Address;
-							this.Memory.SetAddress(newBasic.Address);
+						if(this.Memory != null)
+							this.Memory.Dispose();
 
-							try
-							{
-								this.Memory.Tick();
-							}
-							catch (Exception ex)
-							{
-								Log.Warning(ex, "Failed to tick actor");
-								this.SetInvalid();
-								return;
-							}
-						}
-						else
-						{
-							this.Memory = new ActorMemory();
-							this.Memory.SetAddress(newBasic.Address);
-						}
+						// Reusing the old actor can cause issues so we always recreate when retargeting.
+						this.Memory = new ActorMemory();
+						this.Memory.SetAddress(newBasic.Address);
 
 						IntPtr? oldPointer = this.Pointer;
 
@@ -547,7 +611,14 @@ namespace Anamnesis
 
 						// dont log every time we just select an actor.
 						if (oldPointer != null && oldPointer != this.Pointer)
+						{
 							Log.Information($"Retargeted actor: {this} from {oldPointer} to {this.Pointer}");
+						}
+
+						if (this.IsSelected)
+						{
+							TargetService.Instance.SelectActor(this);
+						}
 
 						this.IsRetargeting = false;
 
@@ -573,7 +644,6 @@ namespace Anamnesis
 				this.Id = this.Memory.Id;
 				this.IdNoAddress = this.Memory.IdNoAddress;
 				this.Name = this.Memory.Name;
-				this.Memory.OnRetargeted();
 				this.Memory.PropertyChanged += this.OnViewModelPropertyChanged;
 				this.Pointer = this.Memory.Address;
 				this.Kind = this.Memory.ObjectKind;

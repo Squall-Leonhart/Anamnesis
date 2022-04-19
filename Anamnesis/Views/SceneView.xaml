@@ -17,6 +17,7 @@
 		  Visibility="{Binding DataContext, Converter={StaticResource NotNullToVisibilityConverter}}">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition />
+			<ColumnDefinition Width="Auto" />
 			<ColumnDefinition Width="300" />
 		</Grid.ColumnDefinitions>
 
@@ -37,13 +38,13 @@
 					  Margin="12, 0, 0, 32"
 					  Height="128"
 					  IsHitTestVisible="False">
-					<Image Source="/Assets/Anamnesis-tan.png"
+					<Image Source="/Assets/Amaurotine.png"
 						   Visibility="{Binding TipService.IsAmaurotine, Converter={StaticResource B2V}}" />
 					<Image Source="/Assets/Hydaelyn.png"
 						   Visibility="{Binding TipService.IsHydaelyn, Converter={StaticResource B2V}}" />
 					<Image Source="/Assets/Zodiark.png"
 						   Visibility="{Binding TipService.IsZodiark, Converter={StaticResource B2V}}" />
-					<Image Source="/Assets/AnamTan.png"
+					<Image Source="/Assets/Anamnesis-tan.png"
 						   Visibility="{Binding TipService.IsAnamTan, Converter={StaticResource B2V}}" />
 				</Grid>
 
@@ -110,7 +111,7 @@
 			</Grid>
 		</Grid>
 
-		<Grid Grid.Column="1"
+		<Grid Grid.Column="2"
 			  IsEnabled="{Binding GameService.IsSignedIn}">
 
 			<Grid.RowDefinitions>
@@ -296,8 +297,8 @@
 						<RowDefinition Height="Auto" />
 						<RowDefinition Height="Auto" />
 						<RowDefinition Height="Auto" />
-						<RowDefinition />
-					</Grid.RowDefinitions>
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
 
 					<XivToolsWpf:TextBlock Grid.Row="0"
 										   Key="Scene_Camera_Delimit"
@@ -306,7 +307,7 @@
 							  Grid.Column="1"
 							  IsChecked="{Binding CameraService.DelimitCamera}" />
 
-					<XivToolsWpf:TextBlock Grid.Row="1"
+                        <XivToolsWpf:TextBlock Grid.Row="1"
 										   Grid.Column="0"
 										   Key="Scene_Camera_Position"
 										   Style="{StaticResource Label}" />
@@ -413,7 +414,7 @@
 										   TickFrequency="1" />
 
 
-					<XivToolsWpf:InfoControl Grid.RowSpan="10"
+                    <XivToolsWpf:InfoControl Grid.RowSpan="10"
 											 Grid.ColumnSpan="2"
 											 Key="Scene_Camera_GPoseWarn"
 											 Visibility="{Binding GposeService.IsGpose, Converter={StaticResource !B2V}}" />

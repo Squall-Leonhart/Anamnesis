@@ -187,42 +187,7 @@ namespace Anamnesis.Files
 				if (result.Path == null)
 					return result;
 
-				string extension = Path.GetExtension(result.Path.FullName);
-
-				Exception? lastException = null;
-				foreach (Type fileType in fileTypes)
-				{
-					FileFilter filter = GetFileTypeFilter(fileType);
-
-					if (filter.Extension == extension)
-					{
-						try
-						{
-							FileBase? file = Activator.CreateInstance(fileType) as FileBase;
-
-							if (file == null)
-								throw new Exception($"Failed to create instance of file type: {fileType}");
-
-							using FileStream stream = new FileStream(result.Path.FullName, FileMode.Open);
-							result.File = file.Deserialize(stream);
-							break;
-						}
-						catch (Exception ex)
-						{
-							Log.Verbose(ex, $"Attempted to deserialize file: {result.Path} as type: {fileType} failed.");
-							lastException = ex;
-						}
-					}
-				}
-
-				if (result.File == null)
-				{
-					if (lastException == null)
-						throw new Exception($"Unrecognised file: {result.Path}");
-
-					throw lastException;
-				}
-
+				result.File = Load(result.Path, fileTypes);
 				return result;
 			}
 			catch (Exception ex)
@@ -231,6 +196,64 @@ namespace Anamnesis.Files
 			}
 
 			return result;
+		}
+
+		public static FileBase? Load(FileInfo info, Type fileType)
+		{
+			string extension = Path.GetExtension(info.FullName);
+
+			try
+			{
+				FileBase? file = Activator.CreateInstance(fileType) as FileBase;
+
+				if (file == null)
+					throw new Exception($"Failed to create instance of file type: {fileType}");
+
+				using FileStream stream = new FileStream(info.FullName, FileMode.Open);
+				return file.Deserialize(stream);
+			}
+			catch (Exception ex)
+			{
+				Log.Verbose(ex, $"Attempted to deserialize file: {info} as type: {fileType} failed.");
+				throw;
+			}
+
+			throw new Exception($"Unrecognised file: {info}");
+		}
+
+		public static FileBase? Load(FileInfo info, Type[] fileTypes)
+		{
+			string extension = Path.GetExtension(info.FullName);
+
+			Exception? lastException = null;
+			foreach (Type fileType in fileTypes)
+			{
+				FileFilter filter = GetFileTypeFilter(fileType);
+
+				if (filter.Extension == extension)
+				{
+					try
+					{
+						FileBase? file = Activator.CreateInstance(fileType) as FileBase;
+
+						if (file == null)
+							throw new Exception($"Failed to create instance of file type: {fileType}");
+
+						using FileStream stream = new FileStream(info.FullName, FileMode.Open);
+						return file.Deserialize(stream);
+					}
+					catch (Exception ex)
+					{
+						Log.Verbose(ex, $"Attempted to deserialize file: {info} as type: {fileType} failed.");
+						lastException = ex;
+					}
+				}
+			}
+
+			if (lastException != null)
+				throw lastException;
+
+			throw new Exception($"Unrecognised file: {info}");
 		}
 
 		public static async Task<SaveResult> Save<T>(DirectoryInfo? defaultDirectory, params Shortcut[] directories)
@@ -352,25 +375,18 @@ namespace Anamnesis.Files
 			{
 				try
 				{
-					using FileStream stream = new FileStream(localFile, FileMode.Create, FileAccess.Write);
-					byte[] data;
+					using FileStream fileStream = new FileStream(localFile, FileMode.Create, FileAccess.Write);
 					HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
 					HttpWebResponse response = (HttpWebResponse)request.GetResponse();
 
 					Stream responseStream = response.GetResponseStream();
+					responseStream.CopyTo(fileStream);
 
-					using (MemoryStream memoryStream = new MemoryStream((int)response.ContentLength))
-					{
-						responseStream.CopyTo(memoryStream);
-						data = memoryStream.ToArray();
-					}
-
-					stream.Write(data, 0, data.Length);
+					Log.Verbose($"Cached remote file: {url}. {fileStream.Position} bytes.");
 				}
 				catch (Exception ex)
 				{
-					Log.Information($"Failed to cache data from url: {url}: {ex.Message}");
-					return url;
+					throw new Exception($"Failed to cache data from url: {url}", ex);
 				}
 			}
 
@@ -381,11 +397,10 @@ namespace Anamnesis.Files
 		/// Caches remote image, returns path to image if successful or image exists or original url if unsuccessful.
 		/// Generates name based on hash of original url to avoid overwriting of images with same name.
 		/// </summary>
-		public static string CacheRemoteImage(string url, string originalUrl)
+		public static string CacheRemoteImage(string url)
 		{
 			Uri uri = new Uri(url);
-
-			string imagePath = "ImageCache/" + HashUtility.GetHashString(originalUrl) + Path.GetExtension(uri.Segments[uri.Segments.Length - 1]);
+			string imagePath = "ImageCache/" + HashUtility.GetHashString(url) + Path.GetExtension(uri.Segments[uri.Segments.Length - 1]);
 
 			return CacheRemoteFile(url, imagePath);
 		}
@@ -502,7 +517,7 @@ namespace Anamnesis.Files
 				}
 				catch (Exception ex)
 				{
-					Log.Error(ex, "Failed to load icon for shortcut");
+					Log.Error(ex, $"Failed to load icon for shortcut: {icon}");
 				}
 			}
 		}

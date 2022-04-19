@@ -11,9 +11,11 @@ namespace Anamnesis.Memory
 	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using System.Windows.Input;
 	using Anamnesis.Core.Memory;
 	using Anamnesis.GUI.Dialogs;
 	using Anamnesis.GUI.Windows;
+	using Anamnesis.Keyboard;
 	using Anamnesis.Services;
 	using PropertyChanged;
 	using XivToolsWpf;
@@ -27,13 +29,22 @@ namespace Anamnesis.Memory
 		public static SignatureScanner? Scanner { get; private set; }
 		public static Process? Process { get; private set; }
 		public static bool IsProcessAlive { get; private set; }
+		public static bool DoesProcessHaveFocus { get; private set; }
 
 		public static string GamePath
 		{
 			get
 			{
 				if (Process == null)
+				{
+#if DEBUG
+					if (SettingsService.Current.DebugGamePath != null)
+					{
+						return SettingsService.Current.DebugGamePath;
+					}
+#endif
 					throw new Exception("No game process");
+				}
 
 				if (Process.MainModule == null)
 					throw new Exception("Process has no main module");
@@ -43,6 +54,15 @@ namespace Anamnesis.Memory
 		}
 
 		public int LastTickCount { get; set; }
+
+		public static bool GetDoesProcessHaveFocus()
+		{
+			if (Process == null)
+				return false;
+
+			IntPtr wnd = GetForegroundWindow();
+			return wnd == Process.MainWindowHandle;
+		}
 
 		public static bool GetIsProcessAlive()
 		{
@@ -166,7 +186,7 @@ namespace Anamnesis.Memory
 
 			if (type == typeof(bool))
 			{
-				buffer = new[] { (byte)((bool)value == true ? 1 : 255) };
+				buffer = new[] { (byte)((bool)value == true ? 1 : 0) };
 			}
 			else if (type == typeof(byte))
 			{
@@ -227,6 +247,32 @@ namespace Anamnesis.Memory
 			return WriteProcessMemory(Handle, address, buffer, buffer.Length, out _);
 		}
 
+		public static void SendKey(Key key, KeyboardKeyStates state)
+		{
+			if (Process == null)
+				return;
+
+			int vkey = KeyInterop.VirtualKeyFromKey(key);
+
+			if (key == Key.LeftShift || key == Key.RightShift)
+				vkey = 0x10;
+
+			if (key == Key.LeftCtrl || key == Key.RightCtrl)
+				vkey = 0x11;
+
+			if (key == Key.LeftAlt || key == Key.RightAlt)
+				vkey = 0x12;
+
+			if (state == KeyboardKeyStates.Pressed)
+			{
+				PostMessage(Process.MainWindowHandle, 0x100, (IntPtr)vkey, IntPtr.Zero);
+			}
+			else if (state == KeyboardKeyStates.Released)
+			{
+				PostMessage(Process.MainWindowHandle, 0x0101, (IntPtr)vkey, IntPtr.Zero);
+			}
+		}
+
 		public override async Task Initialize()
 		{
 			await base.Initialize();
@@ -243,7 +289,7 @@ namespace Anamnesis.Memory
 		/// <summary>
 		/// Open the PC game process with all security and access rights.
 		/// </summary>
-		public void OpenProcess(Process process)
+		public async Task OpenProcess(Process process)
 		{
 			Process = process;
 
@@ -264,7 +310,7 @@ namespace Anamnesis.Memory
 			if (gameVer != VersionInfo.ValidatedGameVersion)
 			{
 				Log.Warning($"Unrecognized game version: {gameVer}. Current validated version is: {VersionInfo.ValidatedGameVersion}");
-				GenericDialog.ShowLocalized("Error_WrongVersion", "Error_WrongVersionTitle");
+				await GenericDialog.ShowLocalizedAsync("Error_WrongVersion", "Error_WrongVersionTitle");
 			}
 
 			Handle = OpenProcess(0x001F0FFF, true, process.Id);
@@ -325,6 +371,12 @@ namespace Anamnesis.Memory
 		[DllImport("kernel32.dll")]
 		private static extern int CloseHandle(IntPtr hObject);
 
+		[DllImport("user32.dll")]
+		private static extern IntPtr GetForegroundWindow();
+
+		[DllImport("user32.dll")]
+		private static extern IntPtr PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
 		private async Task GetProcess()
 		{
 			Process? proc = null;
@@ -344,17 +396,22 @@ namespace Anamnesis.Memory
 			await Dispatch.NonUiThread();
 
 			// if still no process, shutdown.
+#if !DEBUG
 			if (proc == null)
 			{
 				await Dispatch.MainThread();
 				App.Current.MainWindow.Close();
 				App.Current.Shutdown();
-
 				return;
 			}
+#endif
 
-			this.OpenProcess(proc);
-			await AddressService.Scan();
+			if(proc != null)
+			{
+				await this.OpenProcess(proc);
+				await AddressService.Scan();
+			}
+
 			IsProcessAlive = true;
 		}
 
@@ -364,6 +421,7 @@ namespace Anamnesis.Memory
 			{
 				await Task.Delay(100);
 
+				DoesProcessHaveFocus = GetDoesProcessHaveFocus();
 				IsProcessAlive = GetIsProcessAlive();
 
 				if (!IsProcessAlive)
@@ -398,7 +456,7 @@ namespace Anamnesis.Memory
 		// Special struct for handling 1 byte bool marshaling
 		private struct OneByteBool
 		{
-			#pragma warning disable CS0649
+#pragma warning disable CS0649
 			[MarshalAs(UnmanagedType.I1)]
 			public bool Value;
 		}

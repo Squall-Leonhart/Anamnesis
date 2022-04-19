@@ -9,6 +9,7 @@ namespace Anamnesis.Services
 	using System.Threading.Tasks;
 	using Anamnesis.Core.Memory;
 	using Anamnesis.Files;
+	using Anamnesis.GameData.Excel;
 	using Anamnesis.Memory;
 	using Anamnesis.PoseModule;
 	using Anamnesis.Serialization;
@@ -49,8 +50,8 @@ namespace Anamnesis.Services
 			await Add<LogService>();
 			await Add<SerializerService>();
 			await Add<SettingsService>();
-			await Add<Updater.UpdateService>();
 			await Add<LocalizationService>();
+			await Add<Updater.UpdateService>();
 			await Add<ViewService>();
 			await Add<MemoryService>();
 			await Add<AddressService>();
@@ -68,6 +69,9 @@ namespace Anamnesis.Services
 			await Add<TexToolsService>();
 			await Add<FavoritesService>();
 			await Add<AnimationService>();
+			await Add<NpcFaceHackService>();
+			await Add<Keyboard.HotkeyService>();
+			await Add<HistoryService>();
 
 			IsInitialized = true;
 

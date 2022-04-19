@@ -496,6 +496,17 @@ namespace Anamnesis.GUI.Views
 			_ = Task.Run(this.UpdateEntries);
 		}
 
+		private void OnEditClick(object sender, RoutedEventArgs e)
+		{
+			if (this.Selected == null)
+				return;
+
+			if (this.Selected.File == null)
+				return;
+
+			FileMetaEditor.Show(this.Selected.Entry, this.Selected.File);
+		}
+
 		private void OnRenameClick(object sender, RoutedEventArgs e)
 		{
 			if (this.Selected == null)
@@ -537,11 +548,29 @@ namespace Anamnesis.GUI.Views
 			public readonly FileBrowserView View;
 			public readonly FileFilter? Filter;
 
+			private FileBase? file;
+
 			public EntryWrapper(FileSystemInfo entry, FileBrowserView view, FileFilter? filter)
 			{
 				this.Entry = entry;
 				this.View = view;
 				this.Filter = filter;
+			}
+
+			public FileBase? File
+			{
+				get
+				{
+					if (this.file == null)
+					{
+						if (this.Filter == null)
+							return null;
+
+						this.file = FileService.Load((FileInfo)this.Entry, this.Filter.FileType);
+					}
+
+					return this.file;
+				}
 			}
 
 			public string Name
@@ -688,6 +717,9 @@ namespace Anamnesis.GUI.Views
 					return "\\" + dirName + "\\";
 				}
 			}
+
+			public string FileName => Path.GetFileName(this.Entry.FullName);
+			public bool IsNameCustom => this.Filter != null && this.Filter.GetNameCallback != null;
 		}
 	}
 }

@@ -238,6 +238,14 @@ namespace Anamnesis.PoseModule
 			if (!this.IsEnabled)
 				return;
 
+			if (HistoryService.IsRestoring)
+				return;
+
+			foreach (TransformMemory transformMemory in this.TransformMemories)
+			{
+				transformMemory.EnableReading = false;
+			}
+
 			// Apply the current values to the visual tree
 			this.rotation.Quaternion = this.Rotation.ToMedia3DQuaternion();
 			this.position.OffsetX = this.Position.X;
@@ -265,53 +273,73 @@ namespace Anamnesis.PoseModule
 			position.Z = (float)transform.Matrix.OffsetZ;
 
 			// and push those values to the game memory
-			foreach (TransformMemory? transformMemory in this.TransformMemories)
+			bool changed = false;
+			foreach (TransformMemory transformMemory in this.TransformMemories)
 			{
-				if (this.CanTranslate)
+				if (this.CanTranslate && !transformMemory.Position.IsApproximately(position))
 				{
 					transformMemory.Position = position;
+					changed = true;
 				}
 
-				if (this.CanScale)
+				if (this.CanScale && !transformMemory.Scale.IsApproximately(this.Scale))
 				{
 					transformMemory.Scale = this.Scale;
+					changed = true;
 				}
 
 				if (this.CanRotate)
 				{
-					transformMemory.Rotation = rotation.ToCmQuaternion();
+					CmQuaternion newRot = rotation.ToCmQuaternion();
+					if (!transformMemory.Rotation.IsApproximately(newRot))
+					{
+						transformMemory.Rotation = newRot;
+						changed = true;
+					}
 				}
 			}
 
-			if (this.LinkedEye != null && this.Skeleton.LinkEyes)
+			if (changed)
 			{
-				foreach (TransformMemory? transformMemory in this.LinkedEye.TransformMemories)
+				if (this.LinkedEye != null && this.Skeleton.LinkEyes)
 				{
-					if (this.LinkedEye.CanRotate)
+					foreach (TransformMemory? transformMemory in this.LinkedEye.TransformMemories)
 					{
-						transformMemory.Rotation = rotation.ToCmQuaternion();
+						if (this.LinkedEye.CanRotate)
+						{
+							CmQuaternion newRot = rotation.ToCmQuaternion();
+							if (!transformMemory.Rotation.IsApproximately(newRot))
+							{
+								transformMemory.Rotation = rotation.ToCmQuaternion();
+							}
+						}
 					}
+
+					this.LinkedEye.Rotation = this.Rotation;
 				}
 
-				this.LinkedEye.Rotation = this.Rotation;
+				if (writeChildren)
+				{
+					foreach (Visual3D child in this.Children)
+					{
+						if (child is BoneVisual3d childBone)
+						{
+							if (PoseService.Instance.EnableParenting)
+							{
+								childBone.WriteTransform(root);
+							}
+							else
+							{
+								childBone.ReadTransform(true);
+							}
+						}
+					}
+				}
 			}
 
-			if (writeChildren)
+			foreach (TransformMemory transformMemory in this.TransformMemories)
 			{
-				foreach (Visual3D child in this.Children)
-				{
-					if (child is BoneVisual3d childBone)
-					{
-						if (PoseService.Instance.EnableParenting)
-						{
-							childBone.WriteTransform(root);
-						}
-						else
-						{
-							childBone.ReadTransform(true);
-						}
-					}
-				}
+				transformMemory.EnableReading = true;
 			}
 		}
 

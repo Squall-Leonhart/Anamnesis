@@ -3,12 +3,13 @@
 
 namespace Anamnesis.Services
 {
+	using System;
 	using System.Threading.Tasks;
 	using Anamnesis.Core.Memory;
 	using Anamnesis.Memory;
 	using PropertyChanged;
 
-	public delegate void GposeEvent();
+	public delegate void GposeEvent(bool newState);
 
 	[AddINotifyPropertyChangedInterface]
 	public class GposeService : ServiceBase<GposeService>
@@ -19,6 +20,8 @@ namespace Anamnesis.Services
 		public static event GposeEvent? GposeStateChanged;
 
 		public bool IsGpose { get; private set; }
+
+		[DependsOn(nameof(IsGpose))]
 		public bool IsOverworld => !this.IsGpose;
 
 		public bool IsChangingState { get; private set; }
@@ -28,6 +31,9 @@ namespace Anamnesis.Services
 
 		public static bool GetIsGPose()
 		{
+			if (AddressService.GposeCheck == IntPtr.Zero)
+				return false;
+
 			byte check1 = MemoryService.Read<byte>(AddressService.GposeCheck);
 			byte check2 = MemoryService.Read<byte>(AddressService.GposeCheck2);
 			return check1 == 1 && check2 == 4;
@@ -56,24 +62,17 @@ namespace Anamnesis.Services
 				{
 					this.IsGpose = newGpose;
 
-					GposeStateChanging?.Invoke();
+					GposeStateChanging?.Invoke(newGpose);
 					this.IsChangingState = true;
-
-					// retarget as we enter to allow modification of the actor before it loads
-					await TargetService.Instance.Retarget();
-
 					await Task.Delay(1000);
 					this.IsChangingState = false;
-
-					// retarget again as we have now loaded
-					await TargetService.Instance.Retarget();
-
-					GposeStateChanged?.Invoke();
+					GposeStateChanged?.Invoke(newGpose);
 				}
 
 				this.IsChangingState = false;
 
-				await Task.Delay(100);
+				// ~30 fps
+				await Task.Delay(32);
 			}
 		}
 	}

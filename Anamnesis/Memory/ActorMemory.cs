@@ -11,11 +11,8 @@ namespace Anamnesis.Memory
 	public class ActorMemory : ActorBasicMemory
 	{
 		private const short RefreshDelay = 250;
-
 		private short refreshDelay;
 		private Task? refreshTask;
-
-		private IntPtr? previousObjectKindAddressBeforeGPose;
 
 		public enum CharacterModes : byte
 		{
@@ -33,38 +30,58 @@ namespace Anamnesis.Memory
 		public enum CharacterFlagDefs : byte
 		{
 			None = 0,
-			HatHidden = 1 << 0,
-			VisorToggled = 1 << 4,
+			WeaponsVisible = 1 << 0,
+			WeaponsDrawn = 1 << 1,
+			VisorToggled = 1 << 3,
 		}
 
 		[Bind(0x008D)] public byte SubKind { get; set; }
-		[Bind(0x0B4)] public float Scale { get; set; }
+		[Bind(0x00B4)] public float Scale { get; set; }
 		[Bind(0x00F0, BindFlags.Pointer)] public ActorModelMemory? ModelObject { get; set; }
 		[Bind(0x01B4, BindFlags.ActorRefresh)] public int ModelType { get; set; }
-		[Bind(0x01E2)] public byte ClassJob { get; set; }
-		[Bind(0x07C4)] public bool IsAnimating { get; set; }
-		[Bind(0x0C30, BindFlags.Pointer)] public ActorMemory? Mount { get; set; }
-		[Bind(0x0C38)] public ushort MountId { get; set; }
-		[Bind(0x0C58, BindFlags.Pointer)] public ActorMemory? Companion { get; set; }
-		[Bind(0x0C78)] public WeaponMemory? MainHand { get; set; }
-		[Bind(0x0CE0)] public WeaponMemory? OffHand { get; set; }
-		[Bind(0x0DB0)] public ActorEquipmentMemory? Equipment { get; set; }
-		[Bind(0x0DD8)] public ActorCustomizeMemory? Customize { get; set; }
-		[Bind(0x0DF6, BindFlags.ActorRefresh)] public CharacterFlagDefs CharacterFlags { get; set; }
-		[Bind(0x0E08, BindFlags.Pointer)] public ActorMemory? Ornament { get; set; }
-		[Bind(0x0F30)] public uint TargetAnimation { get; set; }
-		[Bind(0x0FA4)] public float AnimationSpeed { get; set; }
-		[Bind(0x110C)] public ushort AnimationOverride { get; set; }
-		[Bind(0x18B8)] public float Transparency { get; set; }
-		[Bind(0x19C0)] public CharacterModes CharacterMode { get; set; }
-		[Bind(0x19C1)] public byte CharacterModeInput { get; set; }
-		[Bind(0x19F4)] public byte AttachmentPoint { get; set; }
+		[Bind(0x01E0)] public byte ClassJob { get; set; }
+		[Bind(0x0650, BindFlags.Pointer)] public ActorMemory? Mount { get; set; }
+		[Bind(0x0658)] public ushort MountId { get; set; }
+		[Bind(0x06B0, BindFlags.Pointer)] public ActorMemory? Companion { get; set; }
+		[Bind(0x06D0)] public WeaponMemory? MainHand { get; set; }
+		[Bind(0x0738)] public WeaponMemory? OffHand { get; set; }
+		[Bind(0x0808)] public ActorEquipmentMemory? Equipment { get; set; }
+		[Bind(0x0830)] public ActorCustomizeMemory? Customize { get; set; }
+		[Bind(0x084E, BindFlags.ActorRefresh)] public bool HatHidden { get; set; }
+		[Bind(0x084F, BindFlags.ActorRefresh)] public CharacterFlagDefs CharacterFlags { get; set; }
+		[Bind(0x0860, BindFlags.Pointer)] public ActorMemory? Ornament { get; set; }
+		[Bind(0x09A0)] public ushort TargetAnimation { get; set; }
+		[Bind(0x0A14)] public float BaseAnimationSpeedInternal { get; set; }
+		[Bind(0x0A18)] public float AnimationSpeedTrigger { get; set; }
+		[Bind(0x0A30)] public float LipAnimationSpeedInternal { get; set; }
+		[Bind(0x0B8C)] public ushort BaseAnimationOverride { get; set; }
+		[Bind(0x0B8E)] public ushort LipAnimationOverride { get; set; }
+		[Bind(0x11E4)] public bool IsMotionEnabled { get; set; }
+		[Bind(0x19E0)] public float Transparency { get; set; }
+		[Bind(0x1ABC)] public byte CharacterModeRaw { get; set; }
+		[Bind(0x1ABD)] public byte CharacterModeInput { get; set; }
+		[Bind(0x1AE4)] public byte AttachmentPoint { get; set; }
+
+		public History History { get; private set; } = new();
 
 		public bool AutomaticRefreshEnabled { get; set; } = true;
 		public bool IsRefreshing { get; set; } = false;
 		public bool PendingRefresh { get; set; } = false;
 
 		public bool IsPlayer => this.ModelObject != null && this.ModelObject.IsPlayer;
+
+		[DependsOn(nameof(CharacterModeRaw))]
+		public CharacterModes CharacterMode
+		{
+			get
+			{
+				return (CharacterModes)this.CharacterModeRaw;
+			}
+			set
+			{
+				this.CharacterModeRaw = (byte)value;
+			}
+		}
 
 		[DependsOn(nameof(CharacterMode), nameof(CharacterModeInput), nameof(MountId), nameof(Mount))]
 		public bool IsMounted => this.CharacterMode == CharacterModes.HasAttachment && this.CharacterModeInput == 0 && this.MountId != 0 && this.Mount != null;
@@ -74,23 +91,6 @@ namespace Anamnesis.Memory
 
 		[DependsOn(nameof(Companion))]
 		public bool HasCompanion => this.Companion != null;
-
-		[DependsOn(nameof(CharacterFlags))]
-		public bool HatHidden
-		{
-			get => this.CharacterFlags.HasFlag(CharacterFlagDefs.HatHidden);
-			set
-			{
-				if (value)
-				{
-					this.CharacterFlags |= CharacterFlagDefs.HatHidden;
-				}
-				else
-				{
-					this.CharacterFlags &= ~CharacterFlagDefs.HatHidden;
-				}
-			}
-		}
 
 		[DependsOn(nameof(CharacterFlags))]
 		public bool VisorToggled
@@ -115,6 +115,34 @@ namespace Anamnesis.Memory
 			set => this.ObjectKind = (ActorTypes)value;
 		}
 
+		[DependsOn(nameof(ObjectIndex), nameof(CharacterMode))]
+		public bool CanAnimate => (this.CharacterMode == CharacterModes.Normal || this.CharacterMode == CharacterModes.AnimLock) || !ActorService.Instance.IsLocalOverworldPlayer(this.ObjectIndex);
+
+		[DependsOn(nameof(CharacterMode))]
+		public bool IsAnimationOverridden => this.CharacterMode == CharacterModes.AnimLock;
+
+		[DependsOn(nameof(BaseAnimationSpeedInternal))]
+		public float BaseAnimationSpeed
+		{
+			get => this.BaseAnimationSpeedInternal;
+			set
+			{
+				this.BaseAnimationSpeedInternal = value;
+				this.AnimationSpeedTrigger = value;
+			}
+		}
+
+		[DependsOn(nameof(LipAnimationSpeedInternal))]
+		public float LipAnimationSpeed
+		{
+			get => this.LipAnimationSpeedInternal;
+			set
+			{
+				this.LipAnimationSpeedInternal = value;
+				this.AnimationSpeedTrigger = (this.AnimationSpeedTrigger > this.BaseAnimationSpeedInternal) ? this.BaseAnimationSpeed : this.BaseAnimationSpeed + 0.001f;
+			}
+		}
+
 		/// <summary>
 		/// Refresh the actor to force the game to load any changed values for appearance.
 		/// </summary>
@@ -130,6 +158,8 @@ namespace Anamnesis.Memory
 
 		public override void Tick()
 		{
+			this.History.Tick();
+
 			// Since writing is immadiate from poperties, we don't want to tick (read) anything
 			// during a refresh.
 			if (this.IsRefreshing || this.PendingRefresh)
@@ -158,26 +188,34 @@ namespace Anamnesis.Memory
 
 				this.IsRefreshing = true;
 
-				await Task.Delay(16);
-
-				if (this.ObjectKind == ActorTypes.Player)
+				if (SettingsService.Current.UseExternalRefresh)
 				{
-					this.ObjectKind = ActorTypes.BattleNpc;
-					this.RenderMode = RenderModes.Unload;
-					await Task.Delay(75);
-					this.RenderMode = RenderModes.Draw;
-					await Task.Delay(75);
-					this.ObjectKind = ActorTypes.Player;
-					this.RenderMode = RenderModes.Draw;
+					await Penumbra.Penumbra.Redraw(this.Name);
+					return;
 				}
 				else
 				{
-					this.RenderMode = RenderModes.Unload;
-					await Task.Delay(75);
-					this.RenderMode = RenderModes.Draw;
-				}
+					await Task.Delay(16);
 
-				await Task.Delay(150);
+					if (this.ObjectKind == ActorTypes.Player)
+					{
+						this.ObjectKind = ActorTypes.BattleNpc;
+						this.RenderMode = RenderModes.Unload;
+						await Task.Delay(75);
+						this.RenderMode = RenderModes.Draw;
+						await Task.Delay(75);
+						this.ObjectKind = ActorTypes.Player;
+						this.RenderMode = RenderModes.Draw;
+					}
+					else
+					{
+						this.RenderMode = RenderModes.Unload;
+						await Task.Delay(75);
+						this.RenderMode = RenderModes.Draw;
+					}
+
+					await Task.Delay(150);
+				}
 
 				Log.Information($"Completed actor refresh for actor address: {this.Address}");
 			}
@@ -196,70 +234,26 @@ namespace Anamnesis.Memory
 			this.RaisePropertyChanged(nameof(this.IsPlayer));
 		}
 
-		public bool CanHasNpcFace()
+		protected override void HandlePropertyChanged(PropertyChange change)
 		{
-			int index = ActorService.Instance.GetActorTableIndex(this.Address);
+			this.History.Record(change);
 
-			// only the local player should get npc faces!
-			if (index != 0)
-				return false;
-
-			if (this.Customize?.Head > 10)
-				return true;
-
-			return false;
-		}
-
-		public void OnRetargeted()
-		{
-			GposeService gpose = GposeService.Instance;
-
-			// dont apply the npc face hack to actors that dont need it, since it breaks weirdly sometimes.
-			if (this.CanHasNpcFace() || this.previousObjectKindAddressBeforeGPose != null)
-			{
-				if (gpose.IsGpose && gpose.IsChangingState)
-				{
-					// Entering gpose
-					if (this.ObjectKind == ActorTypes.Player)
-					{
-						this.previousObjectKindAddressBeforeGPose = this.GetAddressOfProperty(nameof(this.ObjectKind));
-						this.ObjectKind = ActorTypes.BattleNpc;
-
-						// Sanity check that we do get turned back into a player
-						Task.Run(async () =>
-						{
-							await Task.Delay(3000);
-							MemoryService.Write((IntPtr)this.previousObjectKindAddressBeforeGPose, ActorTypes.Player, "NPC face fix");
-						});
-					}
-				}
-				else if (gpose.IsGpose && !gpose.IsChangingState)
-				{
-					// Entered gpose
-					if (this.previousObjectKindAddressBeforeGPose != null)
-					{
-						MemoryService.Write((IntPtr)this.previousObjectKindAddressBeforeGPose, ActorTypes.Player, "NPC face fix");
-						this.ObjectKind = ActorTypes.Player;
-					}
-				}
-			}
-		}
-
-		protected override void ActorRefresh(string propertyName)
-		{
 			if (!this.AutomaticRefreshEnabled)
 				return;
 
 			if (this.IsRefreshing)
 			{
 				// dont refresh because of a refresh!
-				if (propertyName == nameof(this.ObjectKind) || propertyName == nameof(this.RenderMode))
+				if (change.TerminalPropertyName == nameof(this.ObjectKind) || change.TerminalPropertyName == nameof(this.RenderMode))
 				{
 					return;
 				}
 			}
 
-			this.Refresh();
+			if (change.OriginBind.Flags.HasFlag(BindFlags.ActorRefresh) && change.Origin != PropertyChange.Origins.Game)
+			{
+				this.Refresh();
+			}
 		}
 
 		protected override bool CanWrite(BindInfo bind)
@@ -276,7 +270,7 @@ namespace Anamnesis.Memory
 				else
 				{
 					// do not allow writing of any properties except the ones needed for refresh during a refresh.
-					return bind.Property.Name == nameof(this.ObjectKind) || bind.Property.Name == nameof(this.RenderMode);
+					return bind.Name == nameof(this.ObjectKind) || bind.Name == nameof(this.RenderMode);
 				}
 			}
 

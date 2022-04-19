@@ -171,6 +171,8 @@ namespace Anamnesis.PoseModule
 				this.SelectedBones.Add(bone.Visual);
 			}
 
+			PoseService.SelectedBoneName = this.CurrentBone?.Tooltip;
+
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.CurrentBone));
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.HasSelection));
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.SelectedCount));
@@ -211,6 +213,8 @@ namespace Anamnesis.PoseModule
 				}
 			}
 
+			PoseService.SelectedBoneName = this.CurrentBone?.Tooltip;
+
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.CurrentBone));
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.HasSelection));
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.SelectedCount));
@@ -237,6 +241,8 @@ namespace Anamnesis.PoseModule
 				}
 			}
 
+			PoseService.SelectedBoneName = this.CurrentBone?.Tooltip;
+
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.CurrentBone));
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.HasSelection));
 			this.RaisePropertyChanged(nameof(SkeletonVisual3d.SelectedCount));
@@ -249,6 +255,8 @@ namespace Anamnesis.PoseModule
 
 			Application.Current?.Dispatcher.Invoke(() =>
 			{
+				PoseService.SelectedBoneName = this.CurrentBone?.Tooltip;
+
 				this.RaisePropertyChanged(nameof(SkeletonVisual3d.CurrentBone));
 				this.RaisePropertyChanged(nameof(SkeletonVisual3d.HasSelection));
 				this.RaisePropertyChanged(nameof(SkeletonVisual3d.SelectedCount));
@@ -351,6 +359,28 @@ namespace Anamnesis.PoseModule
 			this.GetBoneChildren(headBone, ref headBones);
 
 			this.Select(headBones, SkeletonVisual3d.SelectMode.Add);
+		}
+
+		public void InvertSelection()
+		{
+			foreach ((string name, BoneVisual3d bone) in this.Bones)
+			{
+				bool selected = this.SelectedBones.Contains(bone);
+
+				if (selected)
+				{
+					this.SelectedBones.Remove(bone);
+				}
+				else
+				{
+					this.SelectedBones.Add(bone);
+				}
+			}
+
+			this.RaisePropertyChanged(nameof(SkeletonVisual3d.CurrentBone));
+			this.RaisePropertyChanged(nameof(SkeletonVisual3d.HasSelection));
+			this.RaisePropertyChanged(nameof(SkeletonVisual3d.SelectedCount));
+			this.RaisePropertyChanged(nameof(SkeletonVisual3d.CanEditBone));
 		}
 
 		public void GetBoneChildren(BoneVisual3d bone, ref List<BoneVisual3d> bones)

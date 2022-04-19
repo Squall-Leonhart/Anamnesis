@@ -7,6 +7,7 @@
 			 xmlns:views="clr-namespace:Anamnesis.Character.Views"
 			 xmlns:XivToolsWpf="clr-namespace:XivToolsWpf.Controls;assembly=XivToolsWpf"
 			 xmlns:anaMem="clr-namespace:Anamnesis.Memory"
+			 xmlns:ana="clr-namespace:Anamnesis.Views"
 			 d:DesignHeight="600"
 			 d:DesignWidth="1024"
 			 DataContextChanged="OnDataContextChanged"
@@ -18,8 +19,7 @@
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="Auto" />
 			<ColumnDefinition />
-			<ColumnDefinition Width="Auto"
-							  MinWidth="230" />
+			<ColumnDefinition Width="Auto"/>
 		</Grid.ColumnDefinitions>
 
 		<Grid Grid.RowSpan="2"
@@ -32,7 +32,7 @@
 					<XivToolsWpf:Header Key="Character_Customize_Header"
 										Icon="ConciergeBell" />
 				</GroupBox.Header>
-
+				
 				<views:CustomizeEditor DataContext="{Binding Actor}" />
 			</GroupBox>
 
@@ -52,7 +52,8 @@
 							Margin="0,-18,-4,0"
 							HorizontalAlignment="Right"
 							VerticalAlignment="Top"
-							Orientation="Horizontal">
+							Orientation="Horizontal"
+							IsEnabled="{Binding Actor.CanRefresh}">
 
 					<Button Click="OnRaceGearClicked"
 							Style="{StaticResource TransparentIconButton}"
@@ -82,7 +83,10 @@
 							Style="{StaticResource TransparentIconButton}">
 
 						<Button.ToolTip>
-							<XivToolsWpf:TextBlock Key="Character_Equipment_Clear" />
+							<StackPanel>
+								<XivToolsWpf:TextBlock Key="Character_Equipment_Clear" />
+								<ana:HotkeyPrompt Function="AppearancePage.ClearEquipment"/>
+							</StackPanel>
 						</Button.ToolTip>
 
 						<fa:IconBlock Foreground="{DynamicResource MaterialDesignBodyLight}"
@@ -91,7 +95,7 @@
 				</StackPanel>
 
 				<views:EquipmentEditor DataContext="{Binding Actor}"
-									   Margin="0, 0, 0, -10" />
+									   Margin="0, 0, 0, -10"/>
 
 
 			</Grid>
@@ -101,12 +105,13 @@
 								 Grid.ColumnSpan="2"
 								 Margin="12"
 								 Visibility="{Binding Actor.CanRefresh, Converter={StaticResource !B2V}}"
-								 Key="Character_WarningGpose" />
+								 Key="Character_WarningGpose"/>
 
 		<Grid Grid.Column="2">
 
 			<Grid.RowDefinitions>
 				<RowDefinition />
+				<RowDefinition Height="Auto" />
 				<RowDefinition Height="Auto" />
 				<RowDefinition Height="Auto" />
 			</Grid.RowDefinitions>
@@ -207,17 +212,15 @@
 
 				</GroupBox>
 
-				<Grid Visibility="{Binding Actor.IsPlayer, Converter={StaticResource B2V}}">
-					<GroupBox Style="{StaticResource PanelGroupBox}"
-							  Visibility="{Binding Actor.ModelObject, Converter={StaticResource NotNullToVisibilityConverter}}">
-						<GroupBox.Header>
-							<XivToolsWpf:Header Key="Character_Model_Header"
+				<GroupBox Style="{StaticResource PanelGroupBox}"
+						  Visibility="{Binding Actor.ModelObject, Converter={StaticResource NotNullToVisibilityConverter}}">
+					<GroupBox.Header>
+						<XivToolsWpf:Header Key="Character_Model_Header"
 												Icon="GraduationCap" />
-						</GroupBox.Header>
+					</GroupBox.Header>
 
-						<views:CharacterModelEditor DataContext="{Binding Actor}"/>
-					</GroupBox>
-				</Grid>
+					<views:CharacterModelEditor DataContext="{Binding Actor}"/>
+				</GroupBox>
 
 				<GroupBox Style="{StaticResource PanelGroupBox}"
 						  Visibility="{Binding Actor.ModelObject.ExtendedAppearance, Converter={StaticResource NotNullToVisibilityConverter}, FallbackValue=Collapsed}">
@@ -231,7 +234,25 @@
 				</GroupBox>
 			</StackPanel>
 
-			<StackPanel Orientation="Vertical" Grid.Row="1">
+			<StackPanel 
+				Grid.Row="1"
+				Margin="2, 2, 2, 0"
+				Orientation="Horizontal">
+				
+				<Button Click="OnFindNpcClicked"
+							Style="{StaticResource TransparentButton}"
+						Padding="6,3">
+
+					<Button.ToolTip>
+						<XivToolsWpf:TextBlock Key="Character_SearchNpcAppearancesTooltip" />
+					</Button.ToolTip>
+
+					<XivToolsWpf:TextBlock Key="Character_SearchNpcAppearances" />
+				</Button>
+				
+			</StackPanel>
+
+			<StackPanel Orientation="Vertical" Grid.Row="2">
 				<Menu Grid.Row="1"
 				  Margin="0,3, 3, 4"
 				  Style="{StaticResource AnaMenu}">
@@ -268,10 +289,10 @@
 					<MenuItem Header="Character_Appearance_LoadNpc"
 						  Icon="User"
 						  Style="{StaticResource ButtonMenuItemLeft}"
-						  Click="OnLoadNpcClicked" />
+						  Click="OnLoadNpcClicked"/>
 
 					<MenuItem Style="{StaticResource ButtonMenuItemRight}"
-						  Margin="-1,0,3,0">
+						  Margin="-1,0,1,0">
 
 						<MenuItem Header="Character_Appearance_Header"
 							  Style="{StaticResource AnaMenuItem}"
@@ -288,8 +309,17 @@
 
 					<MenuItem Header="Common_SaveFile"
 						  Icon="Save"
-						  Style="{StaticResource ButtonMenuItem}"
+						  Style="{StaticResource ButtonMenuItemLeft}"
 						  Click="OnSaveClicked" />
+
+					<MenuItem Style="{StaticResource ButtonMenuItemRight}"
+						  Margin="-1,0,0,0">
+						
+						<MenuItem Header="Common_SaveFileMeta"
+							  Style="{StaticResource AnaMenuItem}"
+							  Click="OnSaveMetaClicked" />
+						
+					</MenuItem>
 				</Menu>
 			</StackPanel>
 

@@ -20,6 +20,7 @@ namespace Anamnesis.Memory
 		{
 			Draw = 0,
 			Unload = 2,
+			Load = 4,
 		}
 
 		[Bind(0x030)] public Utf8String NameBytes { get; set; }
@@ -43,7 +44,7 @@ namespace Anamnesis.Memory
 		public string? Nickname { get; set; }
 
 		[DependsOn(nameof(ObjectIndex))]
-		public bool IsGPoseActor => this.ObjectIndex >= 200 && this.ObjectIndex < 244;
+		public virtual bool IsGPoseActor => this.ObjectIndex >= 200 && this.ObjectIndex < 244;
 
 		[DependsOn(nameof(IsGPoseActor))]
 		public bool IsOverworldActor => !this.IsGPoseActor;
@@ -58,6 +59,14 @@ namespace Anamnesis.Memory
 			{
 				if (PoseService.Instance.IsEnabled)
 					return false;
+
+				if (PoseService.Instance.FreezeWorldPosition)
+					return false;
+
+				// If there is some sort of external refresh service
+				// assume we can always refresh.
+				if (SettingsService.Current.UseExternalRefresh)
+					return true;
 
 				return this.IsOverworldActor;
 			}
@@ -82,6 +91,12 @@ namespace Anamnesis.Memory
 
 				return name;
 			}
+		}
+
+		[DependsOn(nameof(ObjectIndex), nameof(Address))]
+		public bool IsValid
+		{
+			get => this.Address != IntPtr.Zero && ActorService.Instance.GetActorTableIndex(this.Address) == this.ObjectIndex;
 		}
 
 		/// <summary>

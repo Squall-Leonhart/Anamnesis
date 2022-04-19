@@ -36,6 +36,8 @@ namespace Anamnesis.PoseModule
 
 		public static event PoseEvent? EnabledChanged;
 
+		public static string? SelectedBoneName { get; set; }
+
 		public bool IsEnabled
 		{
 			get
@@ -163,6 +165,7 @@ namespace Anamnesis.PoseModule
 		{
 			await base.Shutdown();
 			this.SetEnabled(false);
+			this.FreezeWorldPosition = false;
 		}
 
 		public void SetEnabled(bool enabled)
@@ -170,8 +173,6 @@ namespace Anamnesis.PoseModule
 			// Don't try to enable posing unless we are in gpose
 			if (enabled && !GposeService.Instance.IsGpose)
 				throw new Exception("Attempt to enable posing outside of gpose");
-
-			this.FreezeWorldPosition = enabled; // This one can be toggled externally so we always set it
 
 			if (this.isEnabled == enabled)
 				return;
@@ -247,10 +248,13 @@ namespace Anamnesis.PoseModule
 			}
 		}
 
-		private void OnGposeStateChanging()
+		private void OnGposeStateChanging(bool isGPose)
 		{
-			if (GposeService.Instance.IsOverworld)
+			if (!isGPose)
+			{
 				this.SetEnabled(false);
+				this.FreezeWorldPosition = false;
+			}
 		}
 	}
 }

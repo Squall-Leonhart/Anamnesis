@@ -13,6 +13,7 @@ namespace Anamnesis.GUI
 	using Anamnesis;
 	using Anamnesis.GUI.Dialogs;
 	using Anamnesis.GUI.Views;
+	using Anamnesis.Keyboard;
 	using Anamnesis.Memory;
 	using Anamnesis.PoseModule;
 	using Anamnesis.Services;
@@ -29,24 +30,37 @@ namespace Anamnesis.GUI
 	[AddINotifyPropertyChangedInterface]
 	public partial class MainWindow : ChromedWindow
 	{
+		private static MainWindow? instance;
 		private MiniWindow? mini;
 		private bool hasSetPosition = false;
+		private bool showSettings;
 
 		public MainWindow()
 		{
+			instance = this;
+
 			this.InitializeComponent();
 
 			this.DataContext = this;
 
 			ViewService.ShowingDrawer += this.OnShowDrawer;
+			TargetService.ActorSelected += this.OnActorSelected;
 
 			SettingsService.SettingsChanged += this.OnSettingsChanged;
 			this.OnSettingsChanged();
 
 			GameService.Instance.PropertyChanged += this.OnGameServicePropertyChanged;
+
+			HotkeyService.RegisterHotkeyHandler("MainWindow.SceneTab", () => this.SceneTab.Focus());
+			HotkeyService.RegisterHotkeyHandler("MainWindow.AppearanceTab", () => this.AppearanceTab.Focus());
+			HotkeyService.RegisterHotkeyHandler("MainWindow.PoseTab", () => this.PoseTab.Focus());
+			HotkeyService.RegisterHotkeyHandler("MainWindow.ActionTab", () => this.ActionTab.Focus());
 		}
 
+		public static new bool IsActive => instance?.GetIsActive() ?? false;
+
 		public bool IsClosing { get; private set; } = false;
+		public bool IsDrawerOpen { get; private set; } = false;
 
 		public GameService GameService => GameService.Instance;
 		public SettingsService SettingsService => SettingsService.Instance;
@@ -61,6 +75,18 @@ namespace Anamnesis.GUI
 #else
 		public bool IsDebug => false;
 #endif
+
+		public bool ShowSettings
+		{
+			get => this.showSettings;
+			set
+			{
+				if (value)
+					this.TargetService.ClearSelection();
+
+				this.showSettings = value;
+			}
+		}
 
 		protected override void OnActivated(EventArgs e)
 		{
@@ -132,6 +158,14 @@ namespace Anamnesis.GUI
 			}
 		}
 
+		private void OnActorSelected(ActorMemory? actor)
+		{
+			this.ShowSettings = false;
+
+			if (actor == null)
+				this.Tabs.SelectedIndex = 0;
+		}
+
 		private async Task OnShowDrawer(UserControl view, DrawerDirection direction)
 		{
 			await Application.Current.Dispatcher.InvokeAsync(async () =>
@@ -151,35 +185,37 @@ namespace Anamnesis.GUI
 					drawer.Close += () => this.DrawerHost.IsBottomDrawerOpen = false;
 				}
 
+				this.IsDrawerOpen = true;
+
 				switch (direction)
 				{
 					case DrawerDirection.Left:
-					{
-						this.DrawerLeft.Content = view;
-						this.DrawerHost.IsLeftDrawerOpen = true;
-						break;
-					}
+						{
+							this.DrawerLeft.Content = view;
+							this.DrawerHost.IsLeftDrawerOpen = true;
+							break;
+						}
 
 					case DrawerDirection.Top:
-					{
-						this.DrawerTop.Content = view;
-						this.DrawerHost.IsTopDrawerOpen = true;
-						break;
-					}
+						{
+							this.DrawerTop.Content = view;
+							this.DrawerHost.IsTopDrawerOpen = true;
+							break;
+						}
 
 					case DrawerDirection.Right:
-					{
-						this.DrawerRight.Content = view;
-						this.DrawerHost.IsRightDrawerOpen = true;
-						break;
-					}
+						{
+							this.DrawerRight.Content = view;
+							this.DrawerHost.IsRightDrawerOpen = true;
+							break;
+						}
 
 					case DrawerDirection.Bottom:
-					{
-						this.DrawerBottom.Content = view;
-						this.DrawerHost.IsBottomDrawerOpen = true;
-						break;
-					}
+						{
+							this.DrawerBottom.Content = view;
+							this.DrawerHost.IsBottomDrawerOpen = true;
+							break;
+						}
 				}
 
 				// Wait while any of the drawer areas remain open
@@ -196,31 +232,10 @@ namespace Anamnesis.GUI
 					drawer2.OnClosed();
 				}
 
+				this.IsDrawerOpen = false;
+
 				GC.Collect();
 			});
-		}
-
-		private async void OnSettingsClick(object sender, RoutedEventArgs e)
-		{
-			if (this.DrawerHost.IsRightDrawerOpen)
-			{
-				this.DrawerHost.IsRightDrawerOpen = false;
-				return;
-			}
-
-			if (PoseService.Exists && PoseService.Instance.IsEnabled)
-			{
-				bool? result = await GenericDialog.ShowLocalizedAsync("Pose_WarningQuit", "Common_Confirm", MessageBoxButton.OKCancel);
-
-				if (result != true)
-				{
-					return;
-				}
-
-				PoseService.Instance.IsEnabled = false;
-			}
-
-			await ViewService.ShowDrawer<SettingsView>();
 		}
 
 		private void OnAboutClick(object sender, RoutedEventArgs e)
@@ -232,6 +247,11 @@ namespace Anamnesis.GUI
 			}
 
 			ViewService.ShowDrawer<AboutView>();
+		}
+
+		private void OnHistoryClick(object sender, RoutedEventArgs e)
+		{
+			ViewService.ShowDrawer<HistoryView>();
 		}
 
 		private void OnResizeDrag(object sender, DragDeltaEventArgs e)
@@ -327,19 +347,23 @@ namespace Anamnesis.GUI
 			if (SettingsService.Instance.FirstTimeUser)
 			{
 				this.Ftue.Visibility = Visibility.Visible;
-				ViewService.ShowDrawer<SettingsView>();
+				this.ShowSettings = true;
 			}
 		}
 
 		private void OnFtueOkClicked(object sender, RoutedEventArgs e)
 		{
 			this.Ftue.Visibility = Visibility.Collapsed;
-			this.DrawerHost.IsRightDrawerOpen = false;
 		}
 
 		private void OnWikiClicked(object sender, RoutedEventArgs e)
 		{
 			UrlUtility.Open("https://github.com/imchillin/Anamnesis/wiki");
+		}
+
+		private void OnBackClicked(object sender, RoutedEventArgs e)
+		{
+			this.ShowSettings = false;
 		}
 	}
 }

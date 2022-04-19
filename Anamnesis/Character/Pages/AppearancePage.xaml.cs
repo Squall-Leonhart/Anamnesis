@@ -12,8 +12,7 @@ namespace Anamnesis.Character.Pages
 	using Anamnesis.Character.Views;
 	using Anamnesis.Files;
 	using Anamnesis.GameData;
-	using Anamnesis.GameData.Excel;
-	using Anamnesis.GameData.Sheets;
+	using Anamnesis.Keyboard;
 	using Anamnesis.Memory;
 	using Anamnesis.Services;
 	using Anamnesis.Styles;
@@ -35,6 +34,8 @@ namespace Anamnesis.Character.Pages
 			this.InitializeComponent();
 
 			this.ContentArea.DataContext = this;
+
+			HotkeyService.RegisterHotkeyHandler("AppearancePage.ClearEquipment", () => this.OnClearClicked());
 		}
 
 		public ActorMemory? Actor { get; private set; }
@@ -46,17 +47,16 @@ namespace Anamnesis.Character.Pages
 
 		private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
 		{
-			if (!this.IsVisible)
-				return;
-
 			this.OnActorChanged(this.DataContext as ActorMemory);
 		}
 
-		private void OnClearClicked(object sender, RoutedEventArgs e)
+		private void OnClearClicked(object? sender = null, RoutedEventArgs? e = null)
 		{
 			if (this.Actor == null)
 				return;
 
+			this.Actor.MainHand?.Clear(this.Actor.IsPlayer);
+			this.Actor.OffHand?.Clear(this.Actor.IsPlayer);
 			this.Actor.Equipment?.Arms?.Clear(this.Actor.IsPlayer);
 			this.Actor.Equipment?.Chest?.Clear(this.Actor.IsPlayer);
 			this.Actor.Equipment?.Ear?.Clear(this.Actor.IsPlayer);
@@ -93,6 +93,14 @@ namespace Anamnesis.Character.Pages
 			this.Actor.Equipment?.Chest?.Equip(ItemUtility.NpcBodyItem);
 			this.Actor.Equipment?.Legs?.Equip(ItemUtility.NpcBodyItem);
 			this.Actor.Equipment?.Feet?.Equip(ItemUtility.NpcBodyItem);
+		}
+
+		private void OnFindNpcClicked(object sender, RoutedEventArgs e)
+		{
+			if (this.Actor == null)
+				return;
+
+			NpcAppearanceSearch.Search(this.Actor);
 		}
 
 		private void OnRaceGearClicked(object sender, RoutedEventArgs e)
@@ -267,7 +275,7 @@ namespace Anamnesis.Character.Pages
 		{
 			try
 			{
-				await this.Save();
+				await this.Save(false);
 			}
 			catch (Exception ex)
 			{
@@ -275,12 +283,40 @@ namespace Anamnesis.Character.Pages
 			}
 		}
 
-		private async Task Save()
+		private async void OnSaveMetaClicked(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				await this.Save(true);
+			}
+			catch (Exception ex)
+			{
+				Log.Error(ex, "Failed to save appearance");
+			}
+		}
+
+		private async Task Save(bool editMeta, CharacterFile.SaveModes mode = CharacterFile.SaveModes.All)
 		{
 			if (this.Actor == null)
 				return;
 
-			lastSaveDir = await CharacterFile.Save(lastSaveDir, this.Actor);
+			SaveResult result = await FileService.Save<CharacterFile>(lastSaveDir, FileService.DefaultCharacterDirectory);
+
+			if (result.Path == null)
+				return;
+
+			CharacterFile file = new CharacterFile();
+			file.WriteToFile(this.Actor, mode);
+
+			using FileStream stream = new FileStream(result.Path.FullName, FileMode.Create);
+			file.Serialize(stream);
+
+			lastSaveDir = result.Directory;
+
+			if (editMeta)
+			{
+				FileMetaEditor.Show(result.Path, file);
+			}
 		}
 
 		private void OnActorChanged(ActorMemory? actor)

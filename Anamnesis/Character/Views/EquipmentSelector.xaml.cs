@@ -10,6 +10,7 @@ namespace Anamnesis.Character.Views
 	using Anamnesis.Character.Utilities;
 	using Anamnesis.GameData;
 	using Anamnesis.GameData.Excel;
+	using Anamnesis.Keyboard;
 	using Anamnesis.Services;
 	using Anamnesis.Styles.Drawers;
 	using PropertyChanged;
@@ -24,9 +25,10 @@ namespace Anamnesis.Character.Views
 		private static Classes classFilter = Classes.All;
 		private static ItemCategories categoryFilter = ItemCategories.All;
 		private static bool showLocked = true;
-		private static bool ambidextrous = false;
 		private static bool autoOffhand = true;
 		private static bool showFilters = false;
+		private static bool forceMainModel = false;
+		private static bool forceOffModel = false;
 
 		private readonly Memory.ActorMemory? actor;
 
@@ -39,6 +41,8 @@ namespace Anamnesis.Character.Views
 			this.ContentArea.DataContext = this;
 
 			this.JobFilterText.Text = classFilter.Describe();
+
+			HotkeyService.RegisterHotkeyHandler("AppearancePage.ClearEquipment", this.ClearSlot);
 		}
 
 		public event DrawerEvent? Close;
@@ -58,6 +62,7 @@ namespace Anamnesis.Character.Views
 
 		public ItemSlots Slot { get; set; }
 		public bool IsMainHandSlot => this.Slot == ItemSlots.MainHand;
+		public bool IsOffHandSlot => this.Slot == ItemSlots.OffHand;
 		public bool IsWeaponSlot => this.Slot == ItemSlots.MainHand || this.Slot == ItemSlots.OffHand;
 		public bool IsSmallclothesSlot => this.Slot > ItemSlots.Head && this.Slot <= ItemSlots.OffHand;
 
@@ -94,24 +99,35 @@ namespace Anamnesis.Character.Views
 			}
 		}
 
-		public bool Ambidextrous
-		{
-			get => ambidextrous;
-			set
-			{
-				ambidextrous = value;
-				this.Selector.FilterItems();
-			}
-		}
-
 		public bool AutoOffhand
 		{
 			get => autoOffhand;
 			set => autoOffhand = value;
 		}
 
+		public bool ForceMainModel
+		{
+			get => forceMainModel;
+			set
+			{
+				forceMainModel = value;
+				this.Selector.FilterItems();
+			}
+		}
+
+		public bool ForceOffModel
+		{
+			get => forceOffModel;
+			set
+			{
+				forceOffModel = value;
+				this.Selector.FilterItems();
+			}
+		}
+
 		public void OnClosed()
 		{
+			HotkeyService.ClearHotkeyHandler("AppearancePage.ClearEquipment", this);
 		}
 
 		private void OnClose()
@@ -126,7 +142,9 @@ namespace Anamnesis.Character.Views
 
 		private Task OnLoadItems()
 		{
-			this.Selector.AddItem(ItemUtility.NoneItem);
+			if (!this.IsMainHandSlot)
+				this.Selector.AddItem(ItemUtility.NoneItem);
+
 			this.Selector.AddItem(ItemUtility.NpcBodyItem);
 			this.Selector.AddItem(ItemUtility.InvisibileBodyItem);
 			this.Selector.AddItem(ItemUtility.InvisibileHeadItem);
@@ -157,6 +175,19 @@ namespace Anamnesis.Character.Views
 					return 1;
 				}
 
+				// Push the Emperor's New Fists to the top of the list for weapons.
+				if (this.IsWeaponSlot)
+				{
+					if (itemA == ItemUtility.EmperorsNewFists && itemB != ItemUtility.EmperorsNewFists)
+					{
+						return -1;
+					}
+					else if (itemA != ItemUtility.EmperorsNewFists && itemB == ItemUtility.EmperorsNewFists)
+					{
+						return 1;
+					}
+				}
+
 				return itemA.RowId.CompareTo(itemB.RowId);
 			}
 
@@ -172,8 +203,11 @@ namespace Anamnesis.Character.Views
 			if (string.IsNullOrEmpty(item.Name))
 				return false;
 
-			if (this.Ambidextrous && this.IsWeaponSlot)
+			if (this.IsWeaponSlot)
 			{
+				////if (this.Slot == ItemSlots.OffHand && !forceMainModel && !item.HasSubModel)
+				////	return false;
+
 				if (!item.IsWeapon)
 					return false;
 			}
@@ -265,9 +299,22 @@ namespace Anamnesis.Character.Views
 			return matches;
 		}
 
-		private void OnClearClicked(object sender, RoutedEventArgs e)
+		private void ClearSlot()
 		{
-			this.Value = ItemUtility.NoneItem;
+			this.OnClearClicked();
+		}
+
+		private void OnClearClicked(object? sender = null, RoutedEventArgs? e = null)
+		{
+			if (this.IsMainHandSlot)
+			{
+				this.Value = ItemUtility.EmperorsNewFists;
+			}
+			else
+			{
+				this.Value = ItemUtility.NoneItem;
+			}
+
 			this.Selector.RaiseSelectionChanged();
 		}
 
