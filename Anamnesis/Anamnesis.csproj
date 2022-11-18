@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<TargetFramework>net5.0-windows</TargetFramework>
+		<TargetFramework>net6.0-windows</TargetFramework>
 		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
 		<UseWPF>true</UseWPF>
 		<AppendTargetFramework>False</AppendTargetFramework>
@@ -24,6 +24,7 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<PlatformTarget>x64</PlatformTarget>
 		<Platforms>x64</Platforms>
+		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -31,7 +32,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Lumina" Version="3.5.2" />
+		<PackageReference Include="Lumina" Version="3.5.4" />
 		<PackageReference Include="Lumina.Excel" Version="6.1.1" />
 		<PackageReference Include="PropertyChanged.Fody" Version="3.4.0">
 			<PrivateAssets>All</PrivateAssets>
@@ -73,7 +74,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Posing\Templates\" />
+		<Folder Include="Actor\Posing\Templates\" />
 		<Folder Include="Properties\" />
 	</ItemGroup>
 
@@ -89,10 +90,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Update="Download DotNET Desktop Runtime.URL">
+	  <None Update="Download dotNet desktop runtime.URL">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
+	  <None Update="Install .NET Desktop Runtime.bat">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
+
+	<ProjectExtensions><VisualStudio><UserProperties languages_4en_1json__JsonSchema="Warning_MinionGposeTitle" /></VisualStudio></ProjectExtensions>
 
 </Project>
 

@@ -9,14 +9,12 @@ Anamnesis is a standalone tool that is used to modify certain clientside-only va
 
 Anamnesis is the successor to [Concept Matrix (CMTool)](https://github.com/imchillin/CMTool).
 
-As of April 16th 2021, this project remains a work in progress and is not currently in a state to replace CMTool. Please do not download the code expecting it to work like CMTool.
-
 We actively encourage people to contribute to the project with their forks to improve the tool overall. With this said, we are **not** supporting builds done via forks and, if you've received a release of the tool from any repo that isn't [imchillin/Anamnesis](https://github.com/imchillin/Anamnesis), you are encouraged to bring the issue up with the person who packaged the build, as it will inevitably contain code we're unfamiliar with.
 
 ## Getting Started
 
 ### Prerequisites
-- [.NET 5.0 Desktop Runtime x64](https://dotnet.microsoft.com/download/dotnet/thank-you/runtime-desktop-5.0.13-windows-x64-installer) installed on your computer. Anamnesis will only work with 64-bit versions of Windows. Support will not be added for x86/32-bit versions of Windows.
+- [.NET 6.0 Desktop Runtime x64](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-desktop-6.0.6-windows-x64-installer) installed on your computer. Anamnesis will only work with 64-bit versions of Windows. Support will not be added for x86/32-bit versions of Windows (As Patch 6.15 Final Fantasy XIV [doesn't support 32 bit OS anymore](https://na.finalfantasyxiv.com/lodestone/news/detail/73031a839564edaca5f4bce18043b9b0e339b52a))
 - Windows 10 or 11 (there are no plans to add support for older versions of Windows that [Microsoft is not in turn supporting](https://www.microsoft.com/en-au/windows/windows-7-end-of-life-support-information), or other operating systems).
 
 ### Installation
@@ -36,6 +34,7 @@ Make sure to check out the included [wiki](https://github.com/imchillin/Anamnesi
 
 ## God Tier Contributing Developers
 
+* **[chirpcodes](https://github.com/chirpcodes)**
 * **[HoloWise](https://github.com/HoloWise)**
 * **[SoyaX](https://github.com/SoyaX)**
 * **[Reyli](https://github.com/Reyli)**
@@ -53,6 +52,8 @@ Make sure to check out the included [wiki](https://github.com/imchillin/Anamnesi
 * **[ShadyWhite](https://github.com/ShadyWhite)** - *Chinese*
 * **[ajiiisai](https://github.com/ajiiisai)** - *Spanish*
 * **[ModernTiger](https://github.com/ModernTiger)** - *Korean*
+* **[RageShoTT](https://github.com/RageShoTT)** - *Italian*
+* **[Murakumo-JP](https://github.com/Murakumo-JP)** - *Russian*
 
 ## License
 
