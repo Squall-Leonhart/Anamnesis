@@ -134,7 +134,6 @@ public class ServiceManager
 		if (os.Platform != PlatformID.Win32NT)
 			throw new Exception("Only Windows NT or later is supported");
 		}
-	}
 
 	private static async Task InitializeService(IService service)
 	{
