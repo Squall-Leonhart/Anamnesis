@@ -251,22 +251,44 @@
 										Icon="Question" />
 				</GroupBox.Header>
 
-				<Grid Grid.Column="2">
+				<Grid Grid.Column="3">
 					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="Auto"/>
-						<ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
 					</Grid.ColumnDefinitions>
 
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 
 					<XivToolsWPF:TextBlock Grid.Column="0" Grid.Row="0" Key="Settings_UseExternalRefresh" Style="{StaticResource Label}"/>
-					<CheckBox IsChecked="{Binding SettingsService.Settings.UseExternalRefresh}" Grid.Column="1" Grid.Row="0" Margin="6"/>
+                    <CheckBox IsChecked="{Binding SettingsService.Settings.UseExternalRefresh}" Grid.Column="1" Grid.Row="0" Margin="6" x:Name="Settings_UseExternalRefresh"/>
 
 					<XivToolsWPF:InfoControl Grid.Row="1" Key="Settings_UseExternalRefreshWarning" Width="237" Grid.ColumnSpan="2"/>
-				</Grid>
+
+                    <XivToolsWPF:TextBlock Grid.Column="0" Grid.Row="2" Key="Settings_EnableNpcHack" Style="{StaticResource Label}"/>
+                    <CheckBox Grid.Column="1" Grid.Row="2" Margin="6">
+                        <CheckBox.Style>
+                            <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                                <Setter Property="IsChecked" Value="{Binding SettingsService.Settings.EnableNpcHack}"></Setter>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=Settings_UseExternalRefresh,Path=IsChecked}" Value="True">
+                                        <Setter Property="IsChecked" Value="False"/>
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ElementName=Settings_UseExternalRefresh,Path=IsChecked}" Value="False">
+                                        <Setter Property="IsEnabled" Value="True"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </CheckBox.Style>
+                    </CheckBox>
+                    
+                    <XivToolsWPF:InfoControl Grid.Row="3" Key="Settings_EnableNpcHackWarning" Width="237" Grid.ColumnSpan="2"/>
+                </Grid>
 			</GroupBox>
 
 		</StackPanel>
