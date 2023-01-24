@@ -1,4 +1,4 @@
-﻿// © Anamnesis.
+// � Anamnesis.
 // Licensed under the MIT license.
 
 namespace Anamnesis.Updater;
@@ -19,7 +19,7 @@ using XivToolsWpf;
 
 public class UpdateService : ServiceBase<UpdateService>
 {
-	private const string Repository = "imchillin/Anamnesis";
+	private const string Repository = "Squall-Leonhart/Anamnesis";
 
 	private readonly HttpClient httpClient = new HttpClient();
 	private Release? currentRelease;
